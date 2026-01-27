@@ -96,11 +96,8 @@ jobs:
             curl -s http://127.0.0.1:4723/status || echo "Appium não respondeu"
 
             # Roda os testes
-            if [ -n "${{ github.event.inputs.test_filter }}" ]; then
-              pytest tests/ -v -s -k "${{ github.event.inputs.test_filter }}" --alluredir=allure-results || true
-            else
-              pytest tests/ -v -s --alluredir=allure-results || true
-            fi
+            TEST_FILTER="${{ github.event.inputs.test_filter }}"
+            if [ -n "$TEST_FILTER" ]; then pytest tests/ -v -s -k "$TEST_FILTER" --alluredir=allure-results || true; else pytest tests/ -v -s --alluredir=allure-results || true; fi
 
       - name: 📊 Gerar relatório Allure
         if: always()
