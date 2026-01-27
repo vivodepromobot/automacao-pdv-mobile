@@ -40,3 +40,4 @@ jobs:
           name: Relatorio-Completo
           path: relatorio-site/
           retention-days: 5
+# Gatilho manual
