@@ -1,0 +1,42 @@
+name: Testes Automatizados no PC
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Permite rodar clicando no botão "Run" do site
+
+jobs:
+  testar-app-mobile:
+    runs-on: self-hosted # <--- Isso manda para a sua janela preta aberta
+    
+    steps:
+      - name: Baixar Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' 
+
+      - name: Instalar Dependências
+        run: |
+          pip install -r requirements.txt
+          npm install -g allure-commandline
+
+      - name: Verificar Dispositivos
+        run: adb devices
+
+      - name: Rodar Testes (Runner)
+        # cmd /c é obrigatório para comandos Python no Windows via GitHub
+        run: cmd /c "python runner.py --all --allure"
+        continue-on-error: true # Continua mesmo se falhar para gerar o relatório
+
+      - name: Gerar Relatório Allure
+        run: allure generate allure-results --clean -o relatorio-site
+
+      - name: Salvar Relatório (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Relatorio-Completo
+          path: relatorio-site/
+          retention-days: 5
