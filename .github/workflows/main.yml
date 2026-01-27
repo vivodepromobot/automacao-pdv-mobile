@@ -1,43 +1,116 @@
-name: Testes Automatizados no PC
+name: Testes Mobile Automatizados
 
 on:
   push:
+    branches: [ "main", "develop" ]
+  pull_request:
     branches: [ "main" ]
-  workflow_dispatch: # Permite rodar clicando no botão "Run" do site
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: 'Filtro de testes (ex: venda, troca, pedido)'
+        required: false
+        default: ''
+
+env:
+  # Variáveis de ambiente para os testes (configure nos Secrets do GitHub)
+  TEST_SERVER_IP: ${{ secrets.TEST_SERVER_IP }}
+  TEST_SERVER_PORT: ${{ secrets.TEST_SERVER_PORT }}
+  TEST_COMPANY: ${{ secrets.TEST_COMPANY }}
+  TEST_USER: ${{ secrets.TEST_USER }}
+  TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+  CI: true
 
 jobs:
-  testar-app-mobile:
-    runs-on: self-hosted # <--- Isso manda para a sua janela preta aberta
-    
+  testes-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
-      - name: Baixar Código
+      - name: 📥 Baixar código
         uses: actions/checkout@v4
 
-      - name: Configurar Python
+      - name: ☕ Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🐍 Configurar Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12' 
+          python-version: '3.12'
+          cache: 'pip'
 
-      - name: Instalar Dependências
+      - name: 📦 Instalar dependências Python
         run: |
+          pip install --upgrade pip
           pip install -r requirements.txt
-          npm install -g allure-commandline
 
-      - name: Verificar Dispositivos
-        run: adb devices
+      - name: 📱 Instalar Appium e drivers
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
 
-      - name: Rodar Testes (Runner)
-        # cmd /c é obrigatório para comandos Python no Windows via GitHub
-        run: cmd /c "python runner.py --all --allure"
-        continue-on-error: true # Continua mesmo se falhar para gerar o relatório
+      - name: 📊 Instalar Allure CLI
+        run: npm install -g allure-commandline
 
-      - name: Gerar Relatório Allure
-        run: allure generate allure-results --clean -o relatorio-site
+      - name: 🧪 Rodar testes no Emulador Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            # Aguarda emulador estar pronto
+            adb wait-for-device
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
 
-      - name: Salvar Relatório (Artifacts)
+            # Inicia Appium em background
+            appium --relaxed-security --log-level error &
+            sleep 15
+
+            # Verifica se Appium está rodando
+            curl -s http://127.0.0.1:4723/status || echo "Appium não respondeu"
+
+            # Roda os testes
+            if [ -n "${{ github.event.inputs.test_filter }}" ]; then
+              pytest tests/ -v -s -k "${{ github.event.inputs.test_filter }}" --alluredir=allure-results || true
+            else
+              pytest tests/ -v -s --alluredir=allure-results || true
+            fi
+
+      - name: 📊 Gerar relatório Allure
+        if: always()
+        run: allure generate allure-results --clean -o allure-report
+
+      - name: 💾 Salvar relatório Allure
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Completo
-          path: relatorio-site/
-          retention-days: 5
-# Gatilho manual
+          name: allure-report-${{ github.run_number }}
+          path: allure-report/
+          retention-days: 30
+
+      - name: 💾 Salvar screenshots de falhas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.run_number }}
+          path: logs/screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: 💾 Salvar logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_number }}
+          path: logs/
+          retention-days: 7
+          if-no-files-found: ignore

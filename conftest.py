@@ -2,6 +2,7 @@
 Conftest - Fixtures compartilhadas para pytest.
 Suporta execucao em multiplos dispositivos.
 Configuracao avancada do Allure para relatorios detalhados.
+Compativel com CI/CD (GitHub Actions, Jenkins, etc).
 """
 import pytest
 import allure
@@ -25,6 +26,9 @@ from test_data import test_data
 
 # Diretorio para resultados Allure
 ALLURE_RESULTS_DIR = Path(__file__).parent / "allure-results"
+
+# Detecta se está rodando em CI
+IS_CI = os.getenv("CI", "false").lower() == "true" or os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
 
 
 # --- Opcoes de linha de comando para multiplos dispositivos ---
@@ -115,19 +119,27 @@ def _criar_ambiente_allure(config):
             "Servidor Appium": f"http://127.0.0.1:{appium_port}",
             "Device ID": device_id or "auto-detectar",
             "Data Execucao": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Ambiente": "CI/CD" if IS_CI else "Local",
         }
 
-        # Tenta obter info do dispositivo via ADB
+        # Adiciona info do CI se disponível
+        if IS_CI:
+            env_info["GitHub Run ID"] = os.getenv("GITHUB_RUN_ID", "N/A")
+            env_info["GitHub Branch"] = os.getenv("GITHUB_REF_NAME", "N/A")
+            env_info["GitHub Actor"] = os.getenv("GITHUB_ACTOR", "N/A")
+
+        # Tenta obter info do dispositivo via ADB (pode falhar no CI)
         try:
             if device_id:
                 cmd = ['adb', '-s', device_id, 'shell', 'getprop', 'ro.product.model']
             else:
                 cmd = ['adb', 'shell', 'getprop', 'ro.product.model']
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
+            if result.returncode == 0 and result.stdout.strip():
                 env_info["Modelo Dispositivo"] = result.stdout.strip()
         except:
-            pass
+            if IS_CI:
+                env_info["Modelo Dispositivo"] = "Emulador CI"
 
         try:
             if device_id:
@@ -135,7 +147,7 @@ def _criar_ambiente_allure(config):
             else:
                 cmd = ['adb', 'shell', 'getprop', 'ro.build.version.release']
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
+            if result.returncode == 0 and result.stdout.strip():
                 env_info["Android Version"] = result.stdout.strip()
         except:
             pass
