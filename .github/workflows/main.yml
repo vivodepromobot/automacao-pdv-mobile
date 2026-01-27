@@ -85,8 +85,22 @@ jobs:
 
             # Instala o APK no emulador
             echo "📱 Instalando APK..."
-            adb install -r apps/app-parent-playstore-release.apk
-            echo "✅ APK instalado com sucesso"
+            adb install -r -g apps/app-parent-playstore-release.apk
+
+            # Verifica se instalou corretamente
+            echo "📋 Verificando instalação..."
+            adb shell pm list packages | grep bshop || echo "ERRO: App não encontrado!"
+
+            # Tenta iniciar o app manualmente para verificar
+            echo "🚀 Testando inicialização do app..."
+            adb shell am start -n com.serverinfo.bshoppdv.playstore/com.serverinfo.bshoppdv.activities.LoginPDVActivity || echo "Falha ao iniciar app"
+            sleep 5
+
+            # Captura screenshot para debug
+            adb shell screencap -p /sdcard/debug.png
+            adb pull /sdcard/debug.png ./debug_screenshot.png || true
+
+            echo "✅ APK instalado e verificado"
 
             # Inicia Appium em background
             appium --relaxed-security --log-level error &
@@ -126,5 +140,14 @@ jobs:
         with:
           name: logs-${{ github.run_number }}
           path: logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: 💾 Salvar screenshot de debug
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshot-${{ github.run_number }}
+          path: debug_screenshot.png
           retention-days: 7
           if-no-files-found: ignore
