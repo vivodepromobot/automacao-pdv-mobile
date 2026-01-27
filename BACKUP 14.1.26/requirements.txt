@@ -1,0 +1,6 @@
+# Arquivo: requirements.txt
+appium-python-client
+selenium
+pytest
+pytest-dotenv
+allure-pytest

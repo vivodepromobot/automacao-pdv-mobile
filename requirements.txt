@@ -1,0 +1,16 @@
+# Arquivo: requirements.txt
+# Framework de automação
+appium-python-client>=4.0.0
+selenium>=4.15.0
+
+# Framework de testes
+pytest>=7.4.0
+pytest-dotenv>=0.5.2
+pytest-xdist>=3.5.0        # Execução paralela
+
+# Relatórios
+allure-pytest>=2.13.0
+pytest-html>=4.1.0         # Relatório HTML
+
+# Utilitários
+python-dotenv>=1.0.0       # Variáveis de ambiente
