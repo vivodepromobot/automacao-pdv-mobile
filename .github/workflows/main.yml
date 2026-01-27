@@ -71,6 +71,11 @@ jobs:
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 0
 
+            # Instala o APK no emulador
+            echo "📱 Instalando APK..."
+            adb install -r apps/app-parent-playstore-release.apk
+            echo "✅ APK instalado com sucesso"
+
             # Inicia Appium em background
             appium --relaxed-security --log-level error &
             sleep 15
