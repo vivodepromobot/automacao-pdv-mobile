@@ -5,6 +5,7 @@ import pytest
 import allure
 from pages.home_page import HomePage
 from pages.pedido_page import PedidoPage
+from test_data import test_data
 
 
 @allure.epic("PDV Mobile")
@@ -51,7 +52,7 @@ class TestPedidoVenda:
 
         with allure.step("3. Buscar e selecionar cliente"):
             pagina_pedido.clicar_buscar_cliente()
-            pagina_pedido.selecionar_cliente("1")
+            pagina_pedido.selecionar_cliente(test_data.CUSTOMER_ID)
 
         with allure.step("4. Adicionar produto ao pedido"):
             pagina_pedido.adicionar_produto("123")

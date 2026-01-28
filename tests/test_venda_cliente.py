@@ -5,6 +5,7 @@ import pytest
 import allure
 from pages.home_page import HomePage
 from pages.venda_page import VendaPage
+from test_data import test_data
 
 
 @allure.epic("PDV Mobile")
@@ -49,7 +50,7 @@ class TestVendaCliente:
             pagina_inicial.selecionar_vendedor()
 
         with allure.step("3. Executar fluxo de venda para cliente"):
-            pagina_venda.executar_venda_cliente(id_cliente="3", codigo_produto="123")
+            pagina_venda.executar_venda_cliente(id_cliente=test_data.CUSTOMER_ID, codigo_produto="123")
 
         # Assert
         with allure.step("4. Validar sucesso e concluir"):

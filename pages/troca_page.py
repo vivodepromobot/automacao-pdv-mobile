@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from pages.base_page import BasePage
 from config import APP_PACKAGE, logger
+from test_data import test_data
 
 
 class TrocaPage(BasePage):
@@ -163,7 +164,7 @@ class TrocaPage(BasePage):
 
         # Se aparecer popup de SIM, precisa selecionar cliente
         if self.clicar_texto_se_existir("SIM", tempo_espera=3):
-            self.selecionar_cliente("3")
+            self.selecionar_cliente(test_data.CUSTOMER_ID)
 
         self.marcar_item_para_devolucao()
         self.clicar_devolver_itens()

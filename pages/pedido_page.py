@@ -43,7 +43,17 @@ class PedidoPage(BasePage):
     def adicionar_produto(self, codigo: str = "123"):
         """Adiciona produto pelo código."""
         logger.info(f"-> Adicionando produto: {codigo}")
-        self.clicar_por_id(self.BTN_ADICIONAR_PRODUTOS)
+        time.sleep(2)  # Aguarda tela carregar após selecionar cliente
+
+        # Tenta encontrar o botão, pode precisar de scroll em algumas telas
+        try:
+            self.clicar_por_id(self.BTN_ADICIONAR_PRODUTOS)
+        except:
+            # Se não encontrou, tenta scroll
+            logger.info("   [DEBUG] Botão não visível, tentando scroll...")
+            self.rolar_ate_id(self.BTN_ADICIONAR_PRODUTOS, max_scrolls=3)
+            self.clicar_por_id(self.BTN_ADICIONAR_PRODUTOS)
+
         self.digitar_por_id(self.EDT_BUSCA_PRODUTO, codigo)
         self.clicar_por_id(self.IMG_PRODUTO)
 

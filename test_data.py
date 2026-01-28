@@ -4,6 +4,9 @@ Permite configurar via variáveis de ambiente ou valores padrão.
 """
 import os
 
+# Detecta se está rodando em CI (GitHub Actions)
+IS_CI = os.getenv("CI", "false").lower() == "true" or os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
+
 
 class TestData:
     """Dados de configuração para os testes."""
@@ -18,7 +21,8 @@ class TestData:
     PASSWORD = os.getenv("TEST_PASSWORD", "gabinete")
 
     # --- Dados de Venda ---
-    CUSTOMER_ID = os.getenv("TEST_CUSTOMER_ID", "1")
+    # CI usa cliente 1, Local usa cliente 3
+    CUSTOMER_ID = os.getenv("TEST_CUSTOMER_ID", "1" if IS_CI else "3")
     PRODUCT_CODE = os.getenv("TEST_PRODUCT_CODE", "123")
 
     # --- Timeouts ---
