@@ -67,9 +67,8 @@ def run_test_troca_cliente():
         executar_passo("Validar Sucesso e fechar pop-up final",
                        lambda: validar_texto_e_clicar_por_id(driver, "Sucesso!", "md_buttonDefaultPositive"))
         
-        executar_passo("Voltar", lambda: (driver, "navigationBarBackground"))
+        executar_passo("Voltar para tela inicial", lambda: voltar_tela(driver, confirmar=True))
 
-        executar_passo("Confirmar voltar", lambda:(driver, "android:id/button1"))
         teste_passou = True
 
     except Exception as e:

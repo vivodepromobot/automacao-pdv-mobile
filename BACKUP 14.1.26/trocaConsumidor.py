@@ -24,12 +24,14 @@ def run_test_troca_consumidor():
                        lambda: clicar_por_texto(driver, "Realizar Troca"))
         
         executar_passo("Selecionar Vendedor",
-                        lambda: clicar_por_id(driver, "txt_dialog_seller_name"))
-        
-        executar_passo("Fechar teclado com Back", lambda: fechar_teclado_back(driver))
-        
-        executar_passo("Rolar até encontrar o texto 'Período'",
-                       lambda: scroll_ate_encontrar_texto(driver, "Período", max_scrolls=10))
+                lambda: clicar_por_id(driver, "txt_dialog_seller_name"))
+
+        executar_passo("Tentar fechar teclado (opcional)", 
+               lambda: fechar_teclado_forcado(driver))
+
+            # Usa a versão que ignora teclado
+        executar_passo("Rolar até 'Período'",
+               lambda: scroll_ate_encontrar_texto_ignorando_teclado(driver, "Período"))
         
         executar_passo("Clicar no campo 'Data inicial' para dar foco",
                        lambda: clicar_por_id(driver, "textInputLayout4"))
@@ -39,7 +41,8 @@ def run_test_troca_consumidor():
         executar_passo(f"Inserir data atual ({data_atual})",
                        lambda: digitar_texto_por_xpath(driver, xpath_campo_data, data_atual))
         
-        executar_passo("Fechar teclado com Back", lambda: fechar_teclado_back(driver))
+        executar_passo("Fechar teclado da Stone (múltiplas tentativas)", 
+               lambda: fechar_teclado_forcado(driver))
         
         executar_passo("Rolar até encontrar o texto 'Consultar'",
                        lambda: scroll_ate_encontrar_texto(driver, "CONSULTAR", max_scrolls=10))
