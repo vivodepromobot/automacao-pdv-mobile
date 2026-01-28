@@ -21,8 +21,10 @@ class TestData:
     PASSWORD = os.getenv("TEST_PASSWORD", "gabinete")
 
     # --- Dados de Venda ---
-    # CI usa cliente 1, Local usa cliente 3
-    CUSTOMER_ID = os.getenv("TEST_CUSTOMER_ID", "1" if IS_CI else "3")
+    # CI e Local usam cliente 3 (pode ser alterado independentemente)
+    _CUSTOMER_ID_CI = "3"      # Cliente para GitHub Actions
+    _CUSTOMER_ID_LOCAL = "3"   # Cliente para execução local
+    CUSTOMER_ID = os.getenv("TEST_CUSTOMER_ID", _CUSTOMER_ID_CI if IS_CI else _CUSTOMER_ID_LOCAL)
     PRODUCT_CODE = os.getenv("TEST_PRODUCT_CODE", "123")
 
     # --- Timeouts ---
