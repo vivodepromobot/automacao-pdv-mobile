@@ -19,28 +19,45 @@ class HomePage(BasePage):
     def iniciar_venda(self):
         """Inicia uma venda. Tenta 'Venda' (Playstore) ou 'Iniciar Venda' (devices)."""
         logger.info("-> Iniciando venda...")
-        time.sleep(1)  # Aguarda tela estabilizar
+        time.sleep(2)  # Aguarda tela estabilizar
 
         # Tenta clicar diretamente sem scroll (botão sempre visível na home)
         # Primeiro tenta "Iniciar Venda" (devices: Stone, L400, etc)
+        logger.info("   [DEBUG] Verificando 'Iniciar Venda'...")
         try:
-            if self.texto_exibido(self.TXT_INICIAR_VENDA, timeout=3):
-                logger.info("   [INFO] Encontrado 'Iniciar Venda' (versão device)")
+            if self.texto_exibido(self.TXT_INICIAR_VENDA, timeout=5):
+                logger.info("   [OK] Encontrado 'Iniciar Venda' (versão device)")
                 self.clicar_por_texto(self.TXT_INICIAR_VENDA)
                 return
-        except:
-            pass
+        except Exception as e:
+            logger.info(f"   [DEBUG] 'Iniciar Venda' não encontrado: {e}")
 
         # Depois tenta "Venda" (versão Playstore)
+        logger.info("   [DEBUG] Verificando 'Venda'...")
         try:
-            if self.texto_exibido(self.TXT_VENDA, timeout=3):
-                logger.info("   [INFO] Encontrado 'Venda' (versão Playstore)")
+            if self.texto_exibido(self.TXT_VENDA, timeout=5):
+                logger.info("   [OK] Encontrado 'Venda' (versão Playstore)")
                 self.clicar_por_texto(self.TXT_VENDA)
                 return
+        except Exception as e:
+            logger.info(f"   [DEBUG] 'Venda' não encontrado: {e}")
+
+        # Última tentativa: usa scroll nativo para encontrar
+        logger.info("   [DEBUG] Tentando com scroll nativo...")
+        try:
+            self.rolar_ate_texto(self.TXT_VENDA, max_scrolls=3)
+            self.clicar_por_texto(self.TXT_VENDA)
+            return
         except:
             pass
 
-        # Fallback: tenta qualquer um com um pouco mais de espera
+        try:
+            self.rolar_ate_texto(self.TXT_INICIAR_VENDA, max_scrolls=3)
+            self.clicar_por_texto(self.TXT_INICIAR_VENDA)
+            return
+        except:
+            pass
+
         raise Exception(f"Não encontrou 'Venda' nem 'Iniciar Venda' na tela inicial")
 
     def iniciar_troca(self):
