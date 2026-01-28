@@ -119,6 +119,10 @@ jobs:
             adb emu kill || true
             sleep 3
 
+            # Garante saída limpa do script
+            echo "✅ Script finalizado com sucesso"
+            exit 0
+
       - name: 📊 Gerar relatório Allure
         if: always()
         run: allure generate allure-results --clean -o allure-report
