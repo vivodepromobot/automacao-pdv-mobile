@@ -73,9 +73,9 @@ class TrocaPage(BasePage):
         self.clicar_por_id(self.BTN_CONFIRMAR_CLIENTE)
 
     def marcar_item_para_devolucao(self):
-        """Marca item para devolução."""
+        """Marca item para devolução. Checkbox está no início da tela."""
         logger.info("-> Marcando item para devolução...")
-        time.sleep(1)
+        time.sleep(2)  # Aguarda tela carregar completamente
         self.clicar_por_id(self.CHECKBOX_ITEM)
 
     def clicar_devolver_itens(self):
@@ -163,7 +163,7 @@ class TrocaPage(BasePage):
 
         # Se aparecer popup de SIM, precisa selecionar cliente
         if self.clicar_texto_se_existir("SIM", tempo_espera=3):
-            self.selecionar_cliente("1")
+            self.selecionar_cliente("3")
 
         self.marcar_item_para_devolucao()
         self.clicar_devolver_itens()

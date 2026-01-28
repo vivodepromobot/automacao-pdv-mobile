@@ -25,7 +25,7 @@ class HomePage(BasePage):
         # Primeiro tenta "Iniciar Venda" (devices: Stone, L400, etc)
         logger.info("   [DEBUG] Verificando 'Iniciar Venda'...")
         try:
-            if self.texto_exibido(self.TXT_INICIAR_VENDA, timeout=5):
+            if self.texto_exibido(self.TXT_INICIAR_VENDA, tempo_espera=5):
                 logger.info("   [OK] Encontrado 'Iniciar Venda' (versão device)")
                 self.clicar_por_texto(self.TXT_INICIAR_VENDA)
                 return
@@ -35,7 +35,7 @@ class HomePage(BasePage):
         # Depois tenta "Venda" (versão Playstore)
         logger.info("   [DEBUG] Verificando 'Venda'...")
         try:
-            if self.texto_exibido(self.TXT_VENDA, timeout=5):
+            if self.texto_exibido(self.TXT_VENDA, tempo_espera=5):
                 logger.info("   [OK] Encontrado 'Venda' (versão Playstore)")
                 self.clicar_por_texto(self.TXT_VENDA)
                 return
