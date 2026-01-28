@@ -113,6 +113,12 @@ jobs:
             TEST_FILTER="${{ github.event.inputs.test_filter }}"
             if [ -n "$TEST_FILTER" ]; then pytest tests/ -v -s -k "$TEST_FILTER" --alluredir=allure-results || true; else pytest tests/ -v -s --alluredir=allure-results || true; fi
 
+            # Encerra Appium e emulador explicitamente
+            echo "🛑 Encerrando processos..."
+            pkill -f appium || true
+            adb emu kill || true
+            sleep 3
+
       - name: 📊 Gerar relatório Allure
         if: always()
         run: allure generate allure-results --clean -o allure-report
