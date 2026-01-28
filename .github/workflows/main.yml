@@ -24,7 +24,7 @@ env:
 jobs:
   testes-mobile:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 35
 
     steps:
       - name: 📥 Baixar código
@@ -63,93 +63,95 @@ jobs:
 
       - name: 🧪 Rodar testes no Emulador Android
         uses: reactivecircus/android-emulator-runner@v2
+        timeout-minutes: 30
         with:
           api-level: 29
           target: default
           arch: x86_64
           force-avd-creation: false
-          emulator-boot-timeout: 300
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-boot-timeout: 180
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -quit-on-boot-failure
           disable-animations: true
           script: |
-            # Aguarda emulador estar totalmente pronto
-            adb wait-for-device
-            sleep 10
-            adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;'
-            echo "✅ Emulador pronto"
+            set -e  # Sai em caso de erro
+
+            # Aguarda emulador estar totalmente pronto (com timeout)
+            echo "⏳ Aguardando emulador..."
+            timeout 60 adb wait-for-device || { echo "Timeout aguardando device"; exit 1; }
+            sleep 5
+
+            # Aguarda boot completo (max 60s)
+            for i in {1..60}; do
+              if [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" = "1" ]; then
+                echo "✅ Emulador pronto em ${i}s"
+                break
+              fi
+              sleep 1
+            done
 
             # Desabilita animações
             adb shell settings put global window_animation_scale 0
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 0
 
-            # Instala o APK no emulador
+            # Instala o APK
             echo "📱 Instalando APK..."
-            adb install -r -g apps/app-parent-playstore-release.apk
+            adb install -r -g apps/app-parent-playstore-release.apk || { echo "Falha ao instalar APK"; exit 1; }
 
-            # Verifica se instalou corretamente
-            echo "📋 Verificando instalação..."
-            adb shell pm list packages | grep bshop || echo "ERRO: App não encontrado!"
+            # Verifica instalação
+            adb shell pm list packages | grep bshop || { echo "ERRO: App não encontrado!"; exit 1; }
 
-            # Tenta iniciar o app manualmente para verificar
-            echo "🚀 Testando inicialização do app..."
-            adb shell am start -n com.serverinfo.bshoppdv.playstore/com.serverinfo.bshoppdv.activities.LoginPDVActivity || echo "Falha ao iniciar app"
-            sleep 5
+            # Inicia app
+            echo "🚀 Iniciando app..."
+            adb shell am start -n com.serverinfo.bshoppdv.playstore/com.serverinfo.bshoppdv.activities.LoginPDVActivity
+            sleep 3
 
-            # Captura screenshot para debug
+            # Screenshot debug
             adb shell screencap -p /sdcard/debug.png
             adb pull /sdcard/debug.png ./debug_screenshot.png || true
 
-            echo "✅ APK instalado e verificado"
-
-            # Inicia Appium em background
+            # Inicia Appium
+            echo "🔧 Iniciando Appium..."
             appium --relaxed-security --log-level error &
-            sleep 15
+            APPIUM_PID=$!
+            sleep 10
 
-            # Verifica se Appium está rodando
+            # Verifica Appium
             curl -s http://127.0.0.1:4723/status || echo "Appium não respondeu"
 
-            # Roda os testes
+            # Roda testes
+            echo "🧪 Executando testes..."
             TEST_FILTER="${{ github.event.inputs.test_filter }}"
-            if [ -n "$TEST_FILTER" ]; then pytest tests/ -v -s -k "$TEST_FILTER" --alluredir=allure-results || true; else pytest tests/ -v -s --alluredir=allure-results || true; fi
+            TEST_RESULT=0
+            if [ -n "$TEST_FILTER" ]; then
+              pytest tests/ -v -s -k "$TEST_FILTER" --alluredir=allure-results || TEST_RESULT=$?
+            else
+              pytest tests/ -v -s --alluredir=allure-results || TEST_RESULT=$?
+            fi
 
-            echo "✅ Testes finalizados"
+            echo "✅ Testes finalizados com código: $TEST_RESULT"
+
+            # Mata Appium antes de sair
+            echo "🛑 Encerrando Appium..."
+            kill $APPIUM_PID 2>/dev/null || true
+            sleep 2
+
+            exit $TEST_RESULT
 
       - name: 📊 Gerar relatório Allure
         if: always()
-        run: allure generate allure-results --clean -o allure-report
+        timeout-minutes: 2
+        run: allure generate allure-results --clean -o allure-report || echo "Falha ao gerar Allure"
 
-      - name: 💾 Salvar relatório Allure
+      - name: 💾 Salvar artefatos
         if: always()
+        timeout-minutes: 3
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-${{ github.run_number }}
-          path: allure-report/
-          retention-days: 30
-
-      - name: 💾 Salvar screenshots de falhas
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshots-${{ github.run_number }}
-          path: logs/screenshots/
+          name: resultados-${{ github.run_number }}
+          path: |
+            allure-report/
+            logs/
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: 💾 Salvar logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs-${{ github.run_number }}
-          path: logs/
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: 💾 Salvar screenshot de debug
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshot-${{ github.run_number }}
-          path: debug_screenshot.png
-          retention-days: 7
-          if-no-files-found: ignore

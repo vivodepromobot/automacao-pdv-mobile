@@ -14,6 +14,8 @@ class HomePage(BasePage):
     TXT_REALIZAR_TROCA = "Realizar Troca"
     TXT_VENDA = "Venda"
     DIALOGO_VENDEDOR = "txt_dialog_seller_name"
+    # Tela full-screen de seleção de vendedor (usa mesmo ID para itens da lista)
+    TELA_ESCOLHER_VENDEDOR = "Escolher Vendedor"
 
     # --- Ações ---
     def iniciar_venda(self):
@@ -71,30 +73,41 @@ class HomePage(BasePage):
 
     def selecionar_vendedor(self, max_tentativas: int = 3):
         """
-        Seleciona vendedor no diálogo.
-        Se o diálogo não aparecer (algumas versões não exigem), continua o fluxo.
+        Seleciona vendedor no diálogo ou tela full-screen.
+        Se não aparecer nenhuma tela de vendedor, continua o fluxo.
+        Usa ID para clicar no primeiro vendedor da lista.
         """
         logger.info("-> Selecionando vendedor...")
-        time.sleep(1)  # Aguarda diálogo aparecer
+        time.sleep(2)  # Aguarda tela estabilizar
 
         for tentativa in range(max_tentativas):
             try:
-                # Verifica se o diálogo do vendedor existe
+                # 1. Verifica se é tela full-screen "Escolher Vendedor" ou diálogo
+                #    Ambos usam o mesmo ID para os itens: txt_dialog_seller_name
+                if self.texto_exibido(self.TELA_ESCOLHER_VENDEDOR, tempo_espera=3):
+                    logger.info("   [OK] Tela 'Escolher Vendedor' detectada")
+                    # Clica no PRIMEIRO vendedor da lista por ID
+                    self.clicar_no_primeiro_da_lista_por_id(self.DIALOGO_VENDEDOR)
+                    logger.info("-> Primeiro vendedor da lista selecionado!")
+                    time.sleep(1)
+                    return
+
+                # 2. Verifica se é diálogo popup (mesmo ID)
                 if self.elemento_existe(self.DIALOGO_VENDEDOR, tempo_espera=3):
                     self.clicar_por_id(self.DIALOGO_VENDEDOR)
-                    logger.info("-> Vendedor selecionado!")
+                    logger.info("-> Vendedor selecionado via diálogo!")
                     return
-                else:
-                    # Diálogo não apareceu - algumas versões não exigem seleção de vendedor
-                    logger.info("-> Diálogo de vendedor não apareceu (versão pode não exigir)")
-                    return
+
+                # 3. Nenhuma tela de vendedor apareceu
+                logger.info("-> Nenhuma tela de vendedor detectada (versão pode não exigir)")
+                return
+
             except Exception as e:
                 if tentativa < max_tentativas - 1:
                     logger.warning(f"   [RETRY] Tentativa {tentativa + 1}: {e}")
                     time.sleep(1)
                 else:
-                    # Se falhou todas as tentativas, assume que não precisa de vendedor
-                    logger.warning("-> Não foi possível selecionar vendedor, continuando...")
+                    logger.warning(f"-> Falha ao selecionar vendedor: {e}. Continuando...")
 
     # --- Validações ---
     def tela_inicial_exibida(self, timeout: int = 10) -> bool:

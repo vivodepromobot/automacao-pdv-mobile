@@ -13,7 +13,7 @@ from selenium.webdriver.common.actions.pointer_input import PointerInput
 from selenium.webdriver.common.actions import interaction
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 
-from config import APP_PACKAGE, DEFAULT_WAIT, logger
+from config import DEFAULT_WAIT, logger
 
 
 class BasePage:
@@ -22,13 +22,32 @@ class BasePage:
     def __init__(self, driver):
         self.driver = driver
         self.wait = WebDriverWait(driver, DEFAULT_WAIT)
+        # Obtém app_package do driver (sessão atual) - funciona com múltiplos devices
+        self._app_package = None
+
+    @property
+    def app_package(self) -> str:
+        """Retorna o app_package da sessão atual do driver."""
+        if self._app_package is None:
+            try:
+                # Pega do capabilities da sessão atual
+                caps = self.driver.capabilities
+                self._app_package = caps.get('appPackage') or caps.get('app_package')
+            except:
+                pass
+        return self._app_package
 
     # --- Helpers de locators ---
     def _id_completo(self, element_id: str) -> str:
         """Retorna ID completo com package."""
         if ':id/' in element_id:
             return element_id
-        return f"{APP_PACKAGE}:id/{element_id}"
+        # Usa app_package da sessão, não variável global
+        pkg = self.app_package
+        if not pkg:
+            logger.warning(f"[AVISO] app_package não detectado, usando ID direto: {element_id}")
+            return element_id
+        return f"{pkg}:id/{element_id}"
 
     def _capturar_tela_atual(self) -> str:
         """Captura identificador da tela atual para comparação."""
@@ -466,10 +485,11 @@ class BasePage:
     def voltar_tela(self, confirmar: bool = False) -> bool:
         """Volta para tela anterior."""
         # Tenta botões de navegação comuns
+        pkg = self.app_package or ""
         botoes_voltar = [
-            f"{APP_PACKAGE}:id/navigationBarBackground",
-            f"{APP_PACKAGE}:id/toolbar_navigation",
-            f"{APP_PACKAGE}:id/btn_back",
+            f"{pkg}:id/navigationBarBackground",
+            f"{pkg}:id/toolbar_navigation",
+            f"{pkg}:id/btn_back",
         ]
 
         for btn_id in botoes_voltar:
@@ -495,9 +515,10 @@ class BasePage:
     def _confirmar_dialogo_sair(self):
         """Confirma diálogo de sair se aparecer."""
         time.sleep(0.5)
+        pkg = self.app_package or ""
         botoes_confirmar = [
             ("android:id/button1", AppiumBy.ID),
-            (f"{APP_PACKAGE}:id/md_buttonDefaultPositive", AppiumBy.ID),
+            (f"{pkg}:id/md_buttonDefaultPositive", AppiumBy.ID),
         ]
 
         for locator, by in botoes_confirmar:

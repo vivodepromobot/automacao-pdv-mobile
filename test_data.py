@@ -23,7 +23,7 @@ class TestData:
     # --- Dados de Venda ---
     # CI e Local usam cliente 3 (pode ser alterado independentemente)
     _CUSTOMER_ID_CI = "3"      # Cliente para GitHub Actions
-    _CUSTOMER_ID_LOCAL = "3"   # Cliente para execução local
+    _CUSTOMER_ID_LOCAL = "1"   # Cliente para execução local
     CUSTOMER_ID = os.getenv("TEST_CUSTOMER_ID", _CUSTOMER_ID_CI if IS_CI else _CUSTOMER_ID_LOCAL)
     PRODUCT_CODE = os.getenv("TEST_PRODUCT_CODE", "123")
 

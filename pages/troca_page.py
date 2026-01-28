@@ -4,7 +4,7 @@ Troca Page - Page Object para tela de troca/devolução.
 import time
 from datetime import datetime
 from pages.base_page import BasePage
-from config import APP_PACKAGE, logger
+from config import logger
 from test_data import test_data
 
 
@@ -50,7 +50,7 @@ class TrocaPage(BasePage):
         self.rolar_ate_id(self.INPUT_DATA_INICIAL, max_scrolls=10)
 
         self.clicar_por_id(self.INPUT_DATA_INICIAL)
-        xpath = f"//*[@resource-id='{APP_PACKAGE}:id/{self.INPUT_DATA_INICIAL}']//android.widget.EditText"
+        xpath = f"//*[@resource-id='{self.app_package}:id/{self.INPUT_DATA_INICIAL}']//android.widget.EditText"
         self.digitar_por_xpath(xpath, data)
         time.sleep(0.5)
 
@@ -150,6 +150,11 @@ class TrocaPage(BasePage):
         self.marcar_item_para_devolucao()
         self.clicar_devolver_itens()
         self.confirmar_dialogos()
+
+        # Valida sucesso e volta para tela inicial
+        self.validar_e_fechar_sucesso()
+        time.sleep(1)
+        self.voltar_tela(confirmar=True)
 
         logger.info("--- [FLUXO] Troca concluída ---")
 

@@ -3,7 +3,7 @@ Venda Page - Page Object para tela de venda.
 """
 import time
 from pages.base_page import BasePage
-from config import APP_PACKAGE, logger
+from config import logger
 
 
 class VendaPage(BasePage):
@@ -11,7 +11,7 @@ class VendaPage(BasePage):
 
     # --- Locators ---
     BTN_BUSCAR_CLIENTE = "btn_select_customer"
-    BTN_INICIAR_VENDA_SEM_CLIENTE = "button30"
+    BTN_INICIAR_VENDA_SEM_CLIENTE = "button30"  # Versão Playstore
     BTN_ADICIONAR_PRODUTOS = "btn_adicionar_produtos"
     EDT_BUSCA_PRODUTO = "editText"
     IMG_PRODUTO = "imageView3"
@@ -26,6 +26,10 @@ class VendaPage(BasePage):
     EDT_BUSCA_CLIENTE = "search_src_text"
     BTN_CONFIRMAR_CLIENTE = "button3"
 
+    # Tela "Selecionar Cliente" (versão L400/Stone)
+    TELA_SELECIONAR_CLIENTE = "Selecionar Cliente"
+    TXT_INICIAR_VENDA_BTN = "INICIAR VENDA"
+
     # Popup de bonus
     BTN_MAIS_TARDE = "btn_mais_tarde"
     TXT_BONUS_DISPONIVEL = "BÔNUS DISPONÍVEL"
@@ -34,11 +38,35 @@ class VendaPage(BasePage):
     def clicar_buscar_cliente(self):
         """Clica no botão buscar cliente."""
         logger.info("-> Clicando em Buscar Cliente...")
+        time.sleep(1)
+
+        # Versão L400/Stone: Tela "Selecionar Cliente" com botão "Buscar Cliente" por texto
+        if self.texto_exibido(self.TELA_SELECIONAR_CLIENTE, tempo_espera=3):
+            logger.info("   [OK] Tela 'Selecionar Cliente' detectada")
+            if self.texto_exibido("Buscar Cliente", tempo_espera=2):
+                self.clicar_por_texto("Buscar Cliente")
+                logger.info("   [OK] Clicou em 'Buscar Cliente'")
+                return
+
+        # Versão Playstore: ID btn_select_customer
+        logger.info("   [INFO] Tentando versão Playstore (ID)...")
         self.clicar_por_id(self.BTN_BUSCAR_CLIENTE)
 
     def iniciar_venda_sem_cliente(self):
         """Inicia venda sem selecionar cliente (consumidor)."""
         logger.info("-> Iniciando venda sem cliente...")
+        time.sleep(1)  # Aguarda tela estabilizar
+
+        # Versão L400/Stone: Tela "Selecionar Cliente" com botão "INICIAR VENDA"
+        if self.texto_exibido(self.TELA_SELECIONAR_CLIENTE, tempo_espera=3):
+            logger.info("   [OK] Tela 'Selecionar Cliente' detectada (versão L400/Stone)")
+            if self.texto_exibido(self.TXT_INICIAR_VENDA_BTN, tempo_espera=3):
+                self.clicar_por_texto(self.TXT_INICIAR_VENDA_BTN)
+                logger.info("   [OK] Clicou em 'INICIAR VENDA'")
+                return
+
+        # Versão Playstore: botão button30
+        logger.info("   [INFO] Tentando versão Playstore (button30)...")
         self.clicar_por_id(self.BTN_INICIAR_VENDA_SEM_CLIENTE)
 
     def selecionar_cliente(self, identificador: str):

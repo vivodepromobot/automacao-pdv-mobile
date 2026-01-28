@@ -21,26 +21,22 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Logger configurado para arquivo e console
+# Logger configurado - pytest cuida do console (log_cli), nos so salvamos em arquivo
 logger = logging.getLogger("appium_test")
 logger.setLevel(logging.INFO)
 
-# Handler para arquivo
+# Handler para arquivo (console é gerenciado pelo pytest log_cli)
 from datetime import datetime
 log_filename = LOGS_DIR / f"teste_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 file_handler = logging.FileHandler(log_filename, encoding='utf-8')
 file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%H:%M:%S'))
 
-# Handler para console
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%H:%M:%S'))
-
-# Adiciona handlers (evita duplicação)
+# Adiciona handler (evita duplicação)
 if not logger.handlers:
     logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
+    # Propaga para pytest capturar e mostrar no console com cores
+    logger.propagate = True
 
 def get_connected_device_udid(permitir_multiplos: bool = False):
     """
@@ -148,14 +144,36 @@ APPIUM_SERVER_URL = "http://127.0.0.1:4723"
 DEFAULT_WAIT = 30
 RETRY_ATTEMPTS = 2
 
+# Inicializacao - detecta devices conectados
+# Quando ha multiplos devices, nao tenta detectar app automaticamente
+# O app sera detectado em get_appium_options() com device_id especifico
 try:
-    DEVICE_NAME = get_connected_device_udid(permitir_multiplos=True)
-    APP_PACKAGE, APP_ACTIVITY = discover_target_app()
+    dispositivos = get_all_connected_devices()
+    if len(dispositivos) == 1:
+        DEVICE_NAME = dispositivos[0]
+        APP_PACKAGE, APP_ACTIVITY = discover_target_app(DEVICE_NAME)
+    elif len(dispositivos) > 1:
+        # Multiplos devices - nao detecta app aqui, sera feito por device
+        print(f"[INFO] {len(dispositivos)} dispositivos conectados - deteccao de app sera por device")
+        DEVICE_NAME = dispositivos[0]  # Primeiro como padrao
+        APP_PACKAGE = None
+        APP_ACTIVITY = None
+    else:
+        DEVICE_NAME = None
+        APP_PACKAGE = None
+        APP_ACTIVITY = None
 except RuntimeError as e:
     print(f"\n[!!!] ERRO DE INICIALIZACAO [!!!]\n{e}\n")
     DEVICE_NAME = None
     APP_PACKAGE = None
     APP_ACTIVITY = None
+
+def _calcular_porta_unica(device_id: str, base_port: int = 8200) -> int:
+    """Calcula uma porta unica baseada no device_id para evitar conflitos."""
+    # Usa hash do device_id para gerar um offset (0-99)
+    offset = abs(hash(device_id)) % 100
+    return base_port + offset
+
 
 def get_appium_options(limpar_dados_app: bool = False, device_id: str = None):
     """
@@ -165,30 +183,48 @@ def get_appium_options(limpar_dados_app: bool = False, device_id: str = None):
         limpar_dados_app: Se True, limpa dados do app antes de iniciar.
         device_id: ID do dispositivo (UDID). Se None, usa o detectado automaticamente.
     """
-    # Se device_id especifico, detecta o app nesse dispositivo
-    if device_id:
-        try:
-            app_package, app_activity = discover_target_app(device_id)
-        except:
-            # Fallback para o app global
+    # Determina device a usar
+    device_para_usar = device_id or DEVICE_NAME
+
+    if not device_para_usar:
+        raise RuntimeError("Nenhum dispositivo especificado e nenhum detectado automaticamente")
+
+    # Log qual device sera usado
+    print(f"[APPIUM] Configurando sessao para device: {device_para_usar}")
+
+    # Detecta app no dispositivo especifico
+    try:
+        app_package, app_activity = discover_target_app(device_para_usar)
+        print(f"[APPIUM] App detectado: {app_package}")
+    except Exception as e:
+        print(f"[AVISO] Falha ao detectar app no device {device_para_usar}: {e}")
+        if APP_PACKAGE:
             app_package = APP_PACKAGE
             app_activity = APP_ACTIVITY
-    else:
-        app_package = APP_PACKAGE
-        app_activity = APP_ACTIVITY
+        else:
+            raise RuntimeError(f"Nao foi possivel detectar o app no dispositivo {device_para_usar}")
 
     options = UiAutomator2Options()
     options.platform_name = "Android"
     options.automation_name = "UiAutomator2"
-    options.device_name = device_id or DEVICE_NAME
+
+    # IMPORTANTE: udid DEVE ser definido para garantir device correto com multiplos devices
+    options.set_capability("udid", device_para_usar)
+    options.device_name = device_para_usar
+
+    # IMPORTANTE: systemPort unico por device para evitar conflitos UiAutomator2
+    system_port = _calcular_porta_unica(device_para_usar)
+    options.set_capability("systemPort", system_port)
+    print(f"[APPIUM] SystemPort para {device_para_usar}: {system_port}")
+
     options.app_package = app_package
     options.no_reset = not limpar_dados_app
     options.auto_grant_permissions = True
     options.set_capability("appWaitActivity", "*")
     options.set_capability("forceAppLaunch", True)
 
-    # Se device_id especifico, adiciona UDID
-    if device_id:
-        options.set_capability("udid", device_id)
+    # Timeout maior para conexao com device
+    options.set_capability("newCommandTimeout", 300)
+    options.set_capability("adbExecTimeout", 60000)
 
     return options

@@ -309,25 +309,117 @@ def rodar_sequencial(dispositivo_index: int = None, testes: str = None):
         parar_servidores_appium()
 
 
+def rodar_sequencial_todos(testes: str = None):
+    """
+    Roda testes em TODOS os dispositivos, um por vez (sequencial).
+    Mostra logs em tempo real. Ideal para evitar conflitos no servidor.
+    """
+    dispositivos = obter_dispositivos_conectados()
+
+    if not dispositivos:
+        print("\n[ERRO] Nenhum dispositivo conectado!")
+        return False
+
+    print(f"\n{'='*60}")
+    print(f" EXECUCAO SEQUENCIAL - {len(dispositivos)} DISPOSITIVOS")
+    print(f" (Um device por vez, logs em tempo real)")
+    print(f"{'='*60}\n")
+
+    porta = 4723
+    resultados = []
+
+    # Inicia Appium uma vez
+    print(f"[INFO] Verificando Appium na porta {porta}...")
+    iniciar_servidor_appium(porta)
+    time.sleep(2)
+
+    try:
+        for i, device_id in enumerate(dispositivos, 1):
+            info = obter_info_dispositivo(device_id)
+
+            print(f"\n{'='*60}")
+            print(f" [{i}/{len(dispositivos)}] {info['modelo']} (Android {info['versao']})")
+            print(f" ID: {device_id}")
+            print(f"{'='*60}\n")
+
+            # Monta comando pytest - SEM capture para ver logs em tempo real
+            cmd = [
+                sys.executable, '-m', 'pytest',
+                testes if testes else 'tests/',
+                '-v', '-s',
+                '--tb=short',
+                f'--device-id={device_id}',
+                f'--appium-port={porta}',
+                '--html', f"logs/reports/relatorio_{info['modelo'].replace(' ', '_')}.html",
+                '--self-contained-html'
+            ]
+
+            inicio = time.time()
+            # Executa SEM capture - mostra output em tempo real
+            resultado_proc = subprocess.run(cmd)
+            duracao = time.time() - inicio
+
+            sucesso = resultado_proc.returncode == 0
+            resultados.append({
+                'device_id': device_id,
+                'modelo': info['modelo'],
+                'sucesso': sucesso,
+                'duracao': duracao
+            })
+
+            status = "[OK]" if sucesso else "[X]"
+            print(f"\n{status} {info['modelo']} finalizado em {duracao:.1f}s")
+
+            # Pausa entre dispositivos para limpar sessões
+            if i < len(dispositivos):
+                print(f"\n[INFO] Aguardando 8s para limpar sessoes antes do proximo dispositivo...")
+                time.sleep(8)
+
+    finally:
+        parar_servidores_appium()
+
+    # Resumo final
+    print(f"\n{'='*60}")
+    print(f" RESUMO FINAL")
+    print(f"{'='*60}\n")
+
+    total_sucesso = 0
+    for r in resultados:
+        status = "[OK]" if r['sucesso'] else "[X]"
+        print(f"  {status} {r['modelo']}: {'PASSOU' if r['sucesso'] else 'FALHOU'} ({r['duracao']:.1f}s)")
+        if r['sucesso']:
+            total_sucesso += 1
+
+    print(f"\n{'='*60}")
+    print(f" RESULTADO: {total_sucesso}/{len(resultados)} dispositivos passaram")
+    print(f"{'='*60}\n")
+
+    return all(r['sucesso'] for r in resultados)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Runner para execucao paralela em multiplos dispositivos',
+        description='Runner para execucao em multiplos dispositivos',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos:
   python parallel_runner.py --list                    # Lista dispositivos
-  python parallel_runner.py --all                     # Roda em todos (paralelo)
+  python parallel_runner.py --seq                     # Roda em todos (sequencial, RECOMENDADO)
+  python parallel_runner.py --all                     # Roda em todos (paralelo, pode conflitar)
   python parallel_runner.py --device 1                # Roda no dispositivo 1
   python parallel_runner.py --device 2 --test tests/test_venda_cliente.py
 
-O script inicia automaticamente os servidores Appium necessarios.
+RECOMENDADO: Use --seq para rodar em todos os devices um por vez.
+Isso evita conflitos no servidor e mostra logs em tempo real.
         """
     )
 
     parser.add_argument('--list', '-l', action='store_true',
                         help='Lista dispositivos conectados')
+    parser.add_argument('--seq', '-s', action='store_true',
+                        help='Roda em todos os dispositivos SEQUENCIALMENTE (recomendado)')
     parser.add_argument('--all', '-a', action='store_true',
-                        help='Roda em todos os dispositivos (paralelo)')
+                        help='Roda em todos os dispositivos em PARALELO (pode conflitar)')
     parser.add_argument('--device', '-d', type=int,
                         help='Roda no dispositivo especifico (numero)')
     parser.add_argument('--test', '-t', type=str,
@@ -339,6 +431,9 @@ O script inicia automaticamente os servidores Appium necessarios.
 
     if args.list:
         listar_dispositivos()
+    elif args.seq:
+        sucesso = rodar_sequencial_todos(args.test)
+        sys.exit(0 if sucesso else 1)
     elif args.all:
         sucesso = rodar_paralelo(args.test, args.workers)
         sys.exit(0 if sucesso else 1)

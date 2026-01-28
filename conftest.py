@@ -253,7 +253,7 @@ def driver(request):
 
     logger.info("=" * 50)
     logger.info(f"INICIANDO TESTE: {request.node.name}")
-    logger.info(f"Dispositivo: {device_id or 'auto-detectar'}")
+    logger.info(f"Dispositivo SOLICITADO: {device_id or 'auto-detectar'}")
     logger.info(f"Porta Appium: {appium_port}")
     logger.info(f"Limpar dados do app: {limpar_dados}")
     logger.info("=" * 50)
@@ -263,7 +263,20 @@ def driver(request):
 
     # Obtem options com device_id especifico se fornecido
     options = get_appium_options(limpar_dados_app=limpar_dados, device_id=device_id)
+
+    # Log das capabilities para debug
+    logger.info(f"[DEBUG] UDID nas capabilities: {options.get_capability('udid')}")
+    logger.info(f"[DEBUG] App package: {options.app_package}")
+
     drv = webdriver.Remote(command_executor=appium_url, options=options)
+
+    # Verifica em qual device realmente conectou
+    try:
+        session_caps = drv.capabilities
+        device_real = session_caps.get('udid') or session_caps.get('deviceUDID') or session_caps.get('deviceName')
+        logger.info(f"[DEBUG] Device REAL conectado: {device_real}")
+    except:
+        pass
 
     yield drv
 
