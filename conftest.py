@@ -64,6 +64,10 @@ ORDEM_TESTES = [
     "test_troca_cliente_sucesso",
     # 4. Outros testes
     "test_pedido_venda_sucesso",
+    # 5. Venda Futura Retirada Loja 
+    "test_venda_futura_sucesso",
+    # 6. Venda Futura Domicilio
+    "test_venda_futura_domicilio_sucesso",
 ]
 
 

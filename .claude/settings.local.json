@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Adiciona exit 0 para garantir saída limpa do workflow\n\nO erro ''exit code null'' acontecia após os testes passarem porque\no pkill/adb emu kill terminava o shell de forma inesperada.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Remove cleanup manual - emulator-runner já faz isso\n\nO pkill matava o próprio shell causando exit code null.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(dir /b /o-d \"d:\\\\testes_appium\\\\logs\\\\screenshots\\\\*.png\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Multi-device support + voltar tela após troca\n\n- base_page: app_package dinâmico da sessão do driver \\(não global\\)\n- config: systemPort único por device para evitar conflitos\n- troca_page: voltar_tela\\(confirmar=True\\) após troca cliente\n- home_page: seleção de vendedor por ID \\(primeiro da lista\\)\n- venda_page: suporte tela \"Selecionar Cliente\" L400/Stone\n- parallel_runner: delay 8s entre devices\n- main.yml: timeouts otimizados e kill Appium explícito\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(python parallel_runner.py:*)",
+      "Bash(pip install:*)"
     ]
   }
 }

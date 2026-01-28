@@ -483,34 +483,19 @@ class BasePage:
 
     # --- Navegação ---
     def voltar_tela(self, confirmar: bool = False) -> bool:
-        """Volta para tela anterior."""
-        # Tenta botões de navegação comuns
-        pkg = self.app_package or ""
-        botoes_voltar = [
-            f"{pkg}:id/navigationBarBackground",
-            f"{pkg}:id/toolbar_navigation",
-            f"{pkg}:id/btn_back",
-        ]
-
-        for btn_id in botoes_voltar:
-            try:
-                elemento = WebDriverWait(self.driver, 2).until(
-                    EC.element_to_be_clickable((AppiumBy.ID, btn_id))
-                )
-                elemento.click()
-                if confirmar:
-                    self._confirmar_dialogo_sair()
-                return True
-            except:
-                continue
-
-        # Fallback: KEYCODE_BACK
-        subprocess.run(['adb', 'shell', 'input', 'keyevent', '4'],
-                      timeout=3, capture_output=True)
-        time.sleep(0.5)
-        if confirmar:
-            self._confirmar_dialogo_sair()
-        return True
+        """Volta para tela anterior usando driver (funciona com múltiplos devices)."""
+        logger.info("-> Voltando tela...")
+        try:
+            # Usa driver.back() que funciona no device correto
+            self.driver.back()
+            time.sleep(0.5)
+            if confirmar:
+                self._confirmar_dialogo_sair()
+            logger.info("   [OK] Voltou tela")
+            return True
+        except Exception as e:
+            logger.warning(f"   [!] Erro ao voltar tela: {e}")
+            return False
 
     def _confirmar_dialogo_sair(self):
         """Confirma diálogo de sair se aparecer."""

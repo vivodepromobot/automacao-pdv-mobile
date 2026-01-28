@@ -138,7 +138,7 @@ class TrocaPage(BasePage):
         self.clicar_por_id(self.BTN_CONFIRMAR_VENDA)
 
     def executar_troca(self, data: str = None):
-        """Executa fluxo completo de troca (cliente)."""
+        """Executa fluxo de troca (cliente) até confirmação. Validação feita pelo teste."""
         logger.info("--- [FLUXO] Iniciando troca ---")
 
         # Rolagem por ID é feita dentro de definir_data_inicial e clicar_consultar
@@ -151,12 +151,7 @@ class TrocaPage(BasePage):
         self.clicar_devolver_itens()
         self.confirmar_dialogos()
 
-        # Valida sucesso e volta para tela inicial
-        self.validar_e_fechar_sucesso()
-        time.sleep(1)
-        self.voltar_tela(confirmar=True)
-
-        logger.info("--- [FLUXO] Troca concluída ---")
+        logger.info("--- [FLUXO] Troca executada ---")
 
     def executar_troca_consumidor(self, data: str = None, codigo_produto: str = "123"):
         """Executa fluxo completo de troca para consumidor (com venda pós-troca)."""
