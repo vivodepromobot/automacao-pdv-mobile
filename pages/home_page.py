@@ -17,11 +17,32 @@ class HomePage(BasePage):
 
     # --- Ações ---
     def iniciar_venda(self):
-        """Inicia uma venda."""
+        """Inicia uma venda. Tenta 'Venda' (Playstore) ou 'Iniciar Venda' (devices)."""
         logger.info("-> Iniciando venda...")
-        # Rola até encontrar o botão se necessário
-        self.rolar_ate_texto(self.TXT_INICIAR_VENDA, max_scrolls=3)
-        self.clicar_por_texto(self.TXT_INICIAR_VENDA)
+
+        # Tenta primeiro "Venda" (versão Playstore)
+        try:
+            if self.texto_exibido(self.TXT_VENDA, timeout=3):
+                logger.info("   [INFO] Encontrado botão 'Venda' (versão Playstore)")
+                self.clicar_por_texto(self.TXT_VENDA)
+                return
+        except:
+            pass
+
+        # Tenta "Iniciar Venda" (versões de device)
+        try:
+            self.rolar_ate_texto(self.TXT_INICIAR_VENDA, max_scrolls=5)
+            self.clicar_por_texto(self.TXT_INICIAR_VENDA)
+            return
+        except:
+            pass
+
+        # Última tentativa: rola e tenta "Venda" novamente
+        try:
+            self.rolar_ate_texto(self.TXT_VENDA, max_scrolls=5)
+            self.clicar_por_texto(self.TXT_VENDA)
+        except Exception as e:
+            raise Exception(f"Não encontrou 'Venda' nem 'Iniciar Venda': {e}")
 
     def iniciar_troca(self):
         """Inicia uma troca/devolução."""
