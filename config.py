@@ -98,9 +98,14 @@ APP_TARGETS = {
     "Playstore": {
         "QA":   {"package": "com.serverinfo.bshoppdv.playstore.qa", "activity": "com.serverinfo.bshoppdv.activities.LoginPDVActivity"},
         "PROD": {"package": "com.serverinfo.bshoppdv.playstore",    "activity": "com.serverinfo.bshoppdv.activities.LoginPDVActivity"}
-    },"Pagseguro": {
+    },
+    "Pagseguro": {
         "QA":   {"package": "com.serverinfo.bshoppdv.pagseguro.qa", "activity": "com.serverinfo.bshoppdv.activities.LoginPDVActivity"},
         "PROD": {"package": "com.serverinfo.bshoppdv.pagseguro",    "activity": "com.serverinfo.bshoppdv.activities.LoginPDVActivity"}
+    },
+    "N960K": {
+        "QA":   {"package": "com.serverinfo.bshoppdv.reden960k.qa", "activity": "com.serverinfo.bshoppdv.activities.LoginPDVActivity"},
+        "PROD": {"package": "com.serverinfo.bshoppdv.reden960k",    "activity": "com.serverinfo.bshoppdv.activities.LoginPDVActivity"}
     }
 } 
 

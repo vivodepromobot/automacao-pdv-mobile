@@ -7,12 +7,24 @@ import sys
 import time
 import argparse
 import socket
+import shutil
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 # Lista para guardar processos Appium iniciados
 processos_appium = []
+
+# Diretório de resultados Allure
+ALLURE_RESULTS_DIR = Path(__file__).parent / "allure-results"
+
+
+def limpar_allure_results():
+    """Limpa pasta de resultados Allure para evitar acúmulo."""
+    if ALLURE_RESULTS_DIR.exists():
+        print("[INFO] Limpando resultados Allure anteriores...")
+        shutil.rmtree(ALLURE_RESULTS_DIR)
+    ALLURE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def porta_em_uso(porta: int) -> bool:
@@ -128,6 +140,9 @@ def rodar_testes_dispositivo(device_id: str, porta: int, testes: str = None,
     print(f"[DEVICE] Porta Appium: {porta}")
     print(f"{'='*60}\n")
 
+    # Nome do device para relatórios (sem caracteres especiais)
+    nome_device = info['modelo'].replace(' ', '_').replace(':', '_').replace('/', '_')
+
     # Monta comando pytest
     cmd = [
         sys.executable, '-m', 'pytest',
@@ -138,7 +153,7 @@ def rodar_testes_dispositivo(device_id: str, porta: int, testes: str = None,
     ]
 
     if html_report:
-        report_name = f"logs/reports/relatorio_{device_id.replace(':', '_')}.html"
+        report_name = f"logs/reports/relatorio_{nome_device}.html"
         cmd.extend(['--html', report_name, '--self-contained-html'])
 
     # Executa
@@ -187,6 +202,9 @@ def rodar_paralelo(testes: str = None, max_workers: int = None):
     if not dispositivos:
         print("\n[ERRO] Nenhum dispositivo conectado!")
         return False
+
+    # Limpa resultados Allure anteriores
+    limpar_allure_results()
 
     print(f"\n{'='*60}")
     print(f" EXECUCAO PARALELA - {len(dispositivos)} DISPOSITIVOS")
@@ -319,6 +337,9 @@ def rodar_sequencial_todos(testes: str = None):
     if not dispositivos:
         print("\n[ERRO] Nenhum dispositivo conectado!")
         return False
+
+    # Limpa resultados Allure anteriores
+    limpar_allure_results()
 
     print(f"\n{'='*60}")
     print(f" EXECUCAO SEQUENCIAL - {len(dispositivos)} DISPOSITIVOS")

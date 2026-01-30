@@ -191,7 +191,35 @@ def clicar_por_id_com_espera(driver, id_elemento, wait=DEFAULT_WAIT, tentativas=
                 logger.error(f"   [❌] Falha definitiva ao clicar no ID '{id_elemento}' após {tentativas} tentativas.")
                 raise e
             logger.warning(f"   [⚠️] Tentativa {i+1} de clique falhou. Reentando...")
-            time.sleep(1)    
+            time.sleep(1) 
+
+def garantir_switch_ativo_por_texto(driver, texto_label):
+    """
+    Rola até encontrar o texto e garante que o switch ao lado dele esteja ATIVO (True).
+    """
+    # 1. Rola a tela até achar o texto
+    scroll_ate_encontrar_texto(driver, texto_label)
+    
+    # 2. Busca o Switch "irmão" (Correção: Subindo 2 níveis)
+    # Explicação: Texto -> Pai (Caixa de Texto) -> Avô (Linha inteira) -> Busca Switch
+    xpath_switch = f"//*[@text='{texto_label}']/../..//*[@resource-id='android:id/switch_widget']"
+    
+    # Tenta encontrar o elemento
+    try:
+        switch = find_element_by_xpath(driver, xpath_switch)
+    except:
+        # Fallback: Se 2 níveis não funcionar, tenta 1 nível (para telas diferentes)
+        logger.info("   [DEBUG] XPath de 2 níveis falhou, tentando 1 nível...")
+        xpath_switch = f"//*[@text='{texto_label}']/..//*[@resource-id='android:id/switch_widget']"
+        switch = find_element_by_xpath(driver, xpath_switch)
+
+    # 3. Verifica o estado e clica se necessário
+    if switch.get_attribute("checked") == "false":
+        logger.info(f"   [ACTION] Switch '{texto_label}' estava desligado. Ativando...")
+        switch.click()
+        time.sleep(1) # Espera animação
+    else:
+        logger.info(f"   [OK] Switch '{texto_label}' já estava ativo.")   
 
 def pressionar_tecla_pesquisar_teclado(driver):
     driver.execute_script('mobile: performEditorAction', {'action': 'search'})

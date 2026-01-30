@@ -39,21 +39,27 @@ class VendaFuturaPage(BasePage):
     def selecionar_retirada_loja(self):
         """Seleciona opção 'Retirada em loja'."""
         logger.info("-> Selecionando 'Retirada em loja'...")
+        # Scroll até o botão (telas pequenas)
+        self.rolar_ate_id(self.BTN_VENDA_FUTURA_LOJA)
         self.clicar_por_id(self.BTN_VENDA_FUTURA_LOJA)
 
     def selecionar_entrega_domicilio(self):
         """Seleciona opção 'Entrega em Domicílio' e avança Frete."""
         logger.info("-> Selecionando 'Entrega em Domicílio'...")
+        # Scroll até o botão (telas pequenas)
+        self.rolar_ate_id(self.BTN_VENDA_FUTURA_DOMICILIO)
         self.clicar_por_id(self.BTN_VENDA_FUTURA_DOMICILIO)
-        
+
         # O script legado mostra que tem um "Avançar" logo depois (Frete)
         logger.info("-> Confirmando Frete (Avançar)...")
+        self.rolar_ate_texto("Avançar")
         self.clicar_por_texto("Avançar")
 
 
     def avancar_tipo_entrega(self):
         """Avança na tela de tipo de entrega."""
         logger.info("-> Avançando tipo de entrega...")
+        self.rolar_ate_texto("Avançar")
         self.clicar_por_texto("Avançar")
 
     def selecionar_vendedor(self):
@@ -71,14 +77,17 @@ class VendaFuturaPage(BasePage):
     def adicionar_produto(self, codigo: str = "123", tamanho: str = "36"):
         """Adiciona produto com tamanho específico."""
         logger.info(f"-> Adicionando produto: {codigo}, tamanho: {tamanho}")
+        self.rolar_ate_id(self.BTN_ADICIONAR_PRODUTOS)
         self.clicar_por_id(self.BTN_ADICIONAR_PRODUTOS)
         self.digitar_por_id(self.EDT_BUSCA_PRODUTO, codigo)
         self.clicar_por_id(self.IMG_PRODUTO)
+        self.rolar_ate_texto(tamanho)
         self.clicar_por_texto(tamanho)
 
     def clicar_avancar(self):
         """Clica no botão avançar."""
         logger.info("-> Clicando em Avançar...")
+        self.rolar_ate_id(self.BTN_PROXIMO)
         elemento = self.encontrar_clicavel_por_id(self.BTN_PROXIMO)
         time.sleep(1.5)
         elemento.click()
@@ -89,6 +98,7 @@ class VendaFuturaPage(BasePage):
         time.sleep(3)
 
         # Clica em pagamento personalizado
+        self.rolar_ate_id(self.TXT_PAGAMENTO_TITULO)
         self.clicar_por_id(self.TXT_PAGAMENTO_TITULO)
 
         # Seleciona movimento: A VISTA (primeiro elemento)
@@ -110,6 +120,7 @@ class VendaFuturaPage(BasePage):
             logger.info("   [OK] Plano A Vista selecionado")
 
         # Avança
+        self.rolar_ate_id(self.BTN_AVANCAR)
         self.clicar_por_id(self.BTN_AVANCAR)
 
     def tratar_popup_bonus(self):
@@ -126,13 +137,17 @@ class VendaFuturaPage(BasePage):
     def selecionar_forma_dinheiro(self):
         """Seleciona forma de pagamento DINHEIRO."""
         logger.info("-> Selecionando forma DINHEIRO...")
+        self.rolar_ate_id(self.IMG_PAGAMENTOS)
         self.clicar_por_id(self.IMG_PAGAMENTOS)
+        self.rolar_ate_texto("DINHEIRO")
         self.clicar_por_texto("DINHEIRO")
+        self.rolar_ate_id(self.BTN_PAGAR)
         self.clicar_por_id(self.BTN_PAGAR)
 
     def finalizar_venda(self):
         """Finaliza a venda."""
         logger.info("-> Finalizando venda...")
+        self.rolar_ate_id(self.BTN_FINALIZAR)
         self.clicar_por_id(self.BTN_FINALIZAR)
 
     def responder_impressao(self, imprimir: bool = False):
@@ -144,11 +159,12 @@ class VendaFuturaPage(BasePage):
     def concluir_venda(self):
         """Clica em concluir venda após sucesso."""
         logger.info("-> Concluindo venda...")
+        self.rolar_ate_id(self.BTN_CONFIRMAR_VENDA)
         self.clicar_por_id(self.BTN_CONFIRMAR_VENDA)
 
     def executar_venda_futura(self, cpf: str = "1", codigo_produto: str = "123", tamanho: str = "36"):
-        """Executa fluxo completo de venda futura."""
-        logger.info("--- [FLUXO] Iniciando venda futura ---")
+        """Executa fluxo completo de venda futura com retirada em loja."""
+        logger.info("--- [FLUXO] Iniciando venda futura (retirada loja) ---")
 
         self.selecionar_retirada_loja()
         self.avancar_tipo_entrega()
@@ -162,7 +178,24 @@ class VendaFuturaPage(BasePage):
         self.finalizar_venda()
         self.responder_impressao(imprimir=False)
 
-        logger.info("--- [FLUXO] Venda futura executada ---")
+        logger.info("--- [FLUXO] Venda futura (retirada loja) executada ---")
+
+    def executar_venda_futura_domicilio(self, cpf: str = "1", codigo_produto: str = "123", tamanho: str = "36"):
+        """Executa fluxo completo de venda futura com entrega em domicílio."""
+        logger.info("--- [FLUXO] Iniciando venda futura (domicílio) ---")
+
+        self.selecionar_entrega_domicilio()  # Já inclui avançar frete
+        self.selecionar_vendedor()
+        self.buscar_cliente_cpf(cpf)
+        self.adicionar_produto(codigo_produto, tamanho)
+        self.clicar_avancar()
+        self.selecionar_pagamento_avista()
+        self.tratar_popup_bonus()
+        self.selecionar_forma_dinheiro()
+        self.finalizar_venda()
+        self.responder_impressao(imprimir=False)
+
+        logger.info("--- [FLUXO] Venda futura (domicílio) executada ---")
 
     # --- Validações ---
     def venda_sucesso_exibida(self, timeout: int = 10) -> bool:

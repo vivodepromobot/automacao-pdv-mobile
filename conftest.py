@@ -52,6 +52,7 @@ def pytest_addoption(parser):
 # --- Ordem dos testes (dependencias de dados) ---
 # Troca precisa de venda IMEDIATAMENTE antes para pegar a nota certa
 # A primeira nota da lista eh sempre a mais recente
+# Pedido precisa ser consultado/finalizado logo apos criacao
 ORDEM_TESTES = [
     # 1. Login primeiro
     "test_login_sucesso",
@@ -62,11 +63,15 @@ ORDEM_TESTES = [
     # 3. Venda Cliente -> Troca Cliente (em sequencia)
     "test_venda_cliente_sucesso",
     "test_troca_cliente_sucesso",
-    # 4. Outros testes
-    "test_pedido_venda_sucesso",
-    # 5. Venda Futura Retirada Loja 
+    # 4. Pedido Consumidor -> Consulta/Finaliza (em sequencia)
+    "test_pedido_venda_consumidor_sucesso",
+    "test_consulta_pedido_consumidor_sucesso",
+    # 5. Pedido Cliente -> Consulta/Finaliza (em sequencia)
+    "test_pedido_venda_cliente_sucesso",
+    "test_consulta_pedido_cliente_sucesso",
+    # 6. Venda Futura Retirada Loja
     "test_venda_futura_sucesso",
-    # 6. Venda Futura Domicilio
+    # 7. Venda Futura Domicilio
     "test_venda_futura_domicilio_sucesso",
 ]
 
@@ -192,6 +197,18 @@ def _criar_ambiente_allure(config):
         logger.warning(f"Erro ao criar ambiente Allure: {e}")
 
 
+def _obter_nome_device(driver) -> str:
+    """Obtém nome do device a partir do driver."""
+    try:
+        caps = driver.capabilities
+        # Tenta obter modelo do dispositivo
+        device_name = caps.get('deviceModel') or caps.get('deviceName') or caps.get('udid') or 'device'
+        # Remove caracteres especiais
+        return device_name.replace(' ', '_').replace(':', '_').replace('/', '_')
+    except:
+        return 'device'
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Hook para capturar screenshots e logs em falhas."""
@@ -203,14 +220,17 @@ def pytest_runtest_makereport(item, call):
         driver = item.funcargs.get("driver") or item.funcargs.get("driver_logado")
         if driver:
             try:
-                # Screenshot
-                screenshot_name = f"FALHA_{item.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+                # Obtém nome do device
+                device_name = _obter_nome_device(driver)
+
+                # Screenshot com nome do device
+                screenshot_name = f"FALHA_{device_name}_{item.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
                 screenshot_path = SCREENSHOTS_DIR / screenshot_name
                 driver.get_screenshot_as_file(str(screenshot_path))
 
                 allure.attach.file(
                     str(screenshot_path),
-                    name="Screenshot da Falha",
+                    name=f"Screenshot da Falha ({device_name})",
                     attachment_type=allure.attachment_type.PNG
                 )
                 logger.error(f"Screenshot salvo: {screenshot_path}")
@@ -274,13 +294,20 @@ def driver(request):
 
     drv = webdriver.Remote(command_executor=appium_url, options=options)
 
-    # Verifica em qual device realmente conectou
+    # Verifica em qual device realmente conectou e adiciona ao Allure
     try:
         session_caps = drv.capabilities
         device_real = session_caps.get('udid') or session_caps.get('deviceUDID') or session_caps.get('deviceName')
+        device_model = session_caps.get('deviceModel') or device_real or 'Desconhecido'
         logger.info(f"[DEBUG] Device REAL conectado: {device_real}")
-    except:
-        pass
+        logger.info(f"[DEBUG] Modelo: {device_model}")
+
+        # Adiciona info do device ao Allure
+        allure.dynamic.parameter("device_id", device_real)
+        allure.dynamic.parameter("device_model", device_model)
+        allure.dynamic.tag(f"device:{device_model}")
+    except Exception as e:
+        logger.warning(f"Erro ao obter info do device: {e}")
 
     yield drv
 

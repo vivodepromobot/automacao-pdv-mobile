@@ -4,11 +4,13 @@ from appium import webdriver
 from config import *
 from framework import *
 
-def run_test_venda_consumidor():
+def run_test_pedido_venda():
     start_time = datetime.now()
     driver = None
     teste_passou = False
     erro_capturado = None
+    # Centraliza o nome para relatórios e logs
+    NOME_TESTE = "PEDIDO_VENDA_CONSUMIDOR" 
 
     try:
         appium_options = get_appium_options(limpar_dados_app=False)
@@ -18,13 +20,11 @@ def run_test_venda_consumidor():
         )
         garantir_login(driver)
         
-        logger.info("--- INICIANDO PASSOS DO TESTE DE VENDA CONSUMIDOR ---")
-        
-      # --- INICIANDO PASSOS DO TESTE DE VENDA CONSUMIDOR ---
-        
-        executar_passo("Clicar no botão 'Iniciar Venda'", lambda: clicar_por_texto(driver, "Venda"))
+        # --- INÍCIO DO FLUXO DE PEDIDO ---
+        executar_passo("Clicar no botão 'Pedido Venda'", lambda: clicar_por_texto(driver, "Pedido Venda"))
         executar_passo("Selecionar Vendedor", lambda: clicar_por_id(driver, "txt_dialog_seller_name"))
-        executar_passo("CLicar em iniciar venda", lambda: clicar_por_id(driver, "button30"))
+        executar_passo("Tela selecionar cliente/ Clicar 'Iniciar Venda'", lambda: clicar_por_id(driver, "button30"))
+        
         executar_passo("Adicionar produto", lambda: clicar_por_id(driver, "btn_adicionar_produtos"))
         executar_passo("Procurar produto '123'", lambda: digitar_texto_por_id(driver, "editText", "123"))
         executar_passo("Clicar no produto", lambda: clicar_por_id(driver, "imageView3"))
@@ -41,20 +41,19 @@ def run_test_venda_consumidor():
         executar_passo("Botão finalizar", lambda: validar_texto_e_clicar_por_id(driver, "Finalizar", "btnFinalizar"))
         executar_passo("Validar mensagem de sucesso ao fundo", lambda: find_element_by_text(driver, "Pedido gerado com sucesso!"))
         executar_passo("Clicar no botão CONCLUIR VENDA", lambda: clicar_por_id(driver, "button17"))
-        
         teste_passou = True
 
     except Exception as e:
         erro_capturado = traceback.format_exc()
-        logger.error(f"ERRO CRÍTICO DURANTE A EXECUÇÃO DO TESTE DE VENDA CONSUMIDOR: {e}")
-        if driver: save_screenshot(driver, "CRITICO_VENDA_CONSUMIDOR")
+        logger.error(f"ERRO CRÍTICO DURANTE {NOME_TESTE}: {e}")
+        if driver: save_screenshot(driver, f"CRITICO_{NOME_TESTE}")
     finally:
         end_time = datetime.now()
-        status = "SUCESSO_VENDA_CONSUMIDOR" if teste_passou else "FALHA_VENDA_CONSUMIDOR"
+        status = f"SUCESSO_{NOME_TESTE} ✅" if teste_passou else f"FALHA_{NOME_TESTE} ❌"
         write_report(status, start_time, end_time, extra=erro_capturado)
         
         if driver:
             driver.quit()
 
 if __name__ == "__main__":
-    run_test_venda_consumidor()
+    run_test_pedido_venda()
