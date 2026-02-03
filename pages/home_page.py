@@ -3,7 +3,7 @@ Home Page - Page Object para tela inicial (pós-login).
 """
 import time
 from pages.base_page import BasePage
-from config import logger
+from config import logger, LogStyle, Cores
 
 
 class HomePage(BasePage):
@@ -20,32 +20,32 @@ class HomePage(BasePage):
     # --- Ações ---
     def iniciar_venda(self):
         """Inicia uma venda. Tenta 'Venda' (Playstore) ou 'Iniciar Venda' (devices)."""
-        logger.info("-> Iniciando venda...")
+        logger.info(f"{LogStyle.ACAO} Iniciando venda...")
         time.sleep(2)  # Aguarda tela estabilizar
 
         # Tenta clicar diretamente sem scroll (botão sempre visível na home)
         # Primeiro tenta "Iniciar Venda" (devices: Stone, L400, etc)
-        logger.info("   [DEBUG] Verificando 'Iniciar Venda'...")
+        logger.info(f"   {LogStyle.DEBUG} Verificando {LogStyle.elemento('Iniciar Venda')}...")
         try:
             if self.texto_exibido(self.TXT_INICIAR_VENDA, tempo_espera=5):
-                logger.info("   [OK] Encontrado 'Iniciar Venda' (versão device)")
+                logger.info(f"   {LogStyle.OK} Encontrado {LogStyle.elemento('Iniciar Venda')} (versão device)")
                 self.clicar_por_texto(self.TXT_INICIAR_VENDA)
                 return
         except Exception as e:
-            logger.info(f"   [DEBUG] 'Iniciar Venda' não encontrado: {e}")
+            logger.info(f"   {LogStyle.DEBUG} 'Iniciar Venda' não encontrado: {e}")
 
         # Depois tenta "Venda" (versão Playstore)
-        logger.info("   [DEBUG] Verificando 'Venda'...")
+        logger.info(f"   {LogStyle.DEBUG} Verificando {LogStyle.elemento('Venda')}...")
         try:
             if self.texto_exibido(self.TXT_VENDA, tempo_espera=5):
-                logger.info("   [OK] Encontrado 'Venda' (versão Playstore)")
+                logger.info(f"   {LogStyle.OK} Encontrado {LogStyle.elemento('Venda')} (versão Playstore)")
                 self.clicar_por_texto(self.TXT_VENDA)
                 return
         except Exception as e:
-            logger.info(f"   [DEBUG] 'Venda' não encontrado: {e}")
+            logger.info(f"   {LogStyle.DEBUG} 'Venda' não encontrado: {e}")
 
         # Última tentativa: usa scroll nativo para encontrar
-        logger.info("   [DEBUG] Tentando com scroll nativo...")
+        logger.info(f"   {LogStyle.DEBUG} Tentando com scroll nativo...")
         try:
             self.rolar_ate_texto(self.TXT_VENDA, max_scrolls=3)
             self.clicar_por_texto(self.TXT_VENDA)
@@ -64,12 +64,12 @@ class HomePage(BasePage):
 
     def iniciar_troca(self):
         """Inicia uma troca/devolução."""
-        logger.info("-> Iniciando troca...")
+        logger.info(f"{LogStyle.ACAO} Iniciando troca...")
         # Rola até encontrar o botão se necessário
         self.rolar_ate_texto(self.TXT_REALIZAR_TROCA, max_scrolls=5)
         time.sleep(0.5)
         self.clicar_por_texto(self.TXT_REALIZAR_TROCA)
-        logger.info("-> Clicou em 'Realizar Troca'")
+        logger.info(f"   {LogStyle.OK} Clicou em {LogStyle.elemento('Realizar Troca')}")
 
     def selecionar_vendedor(self, max_tentativas: int = 3):
         """
@@ -77,7 +77,7 @@ class HomePage(BasePage):
         Se não aparecer nenhuma tela de vendedor, continua o fluxo.
         Usa ID para clicar no primeiro vendedor da lista.
         """
-        logger.info("-> Selecionando vendedor...")
+        logger.info(f"{LogStyle.ACAO} Selecionando vendedor...")
         time.sleep(2)  # Aguarda tela estabilizar
 
         for tentativa in range(max_tentativas):
@@ -85,29 +85,29 @@ class HomePage(BasePage):
                 # 1. Verifica se é tela full-screen "Escolher Vendedor" ou diálogo
                 #    Ambos usam o mesmo ID para os itens: txt_dialog_seller_name
                 if self.texto_exibido(self.TELA_ESCOLHER_VENDEDOR, tempo_espera=3):
-                    logger.info("   [OK] Tela 'Escolher Vendedor' detectada")
+                    logger.info(f"   {LogStyle.OK} Tela {LogStyle.elemento('Escolher Vendedor')} detectada")
                     # Clica no PRIMEIRO vendedor da lista por ID
                     self.clicar_no_primeiro_da_lista_por_id(self.DIALOGO_VENDEDOR)
-                    logger.info("-> Primeiro vendedor da lista selecionado!")
+                    logger.info(f"   {LogStyle.OK} Primeiro vendedor da lista selecionado!")
                     time.sleep(1)
                     return
 
                 # 2. Verifica se é diálogo popup (mesmo ID)
                 if self.elemento_existe(self.DIALOGO_VENDEDOR, tempo_espera=3):
                     self.clicar_por_id(self.DIALOGO_VENDEDOR)
-                    logger.info("-> Vendedor selecionado via diálogo!")
+                    logger.info(f"   {LogStyle.OK} Vendedor selecionado via diálogo!")
                     return
 
                 # 3. Nenhuma tela de vendedor apareceu
-                logger.info("-> Nenhuma tela de vendedor detectada (versão pode não exigir)")
+                logger.info(f"   {LogStyle.SKIP} Nenhuma tela de vendedor detectada (versão pode não exigir)")
                 return
 
             except Exception as e:
                 if tentativa < max_tentativas - 1:
-                    logger.warning(f"   [RETRY] Tentativa {tentativa + 1}: {e}")
+                    logger.warning(f"   {LogStyle.RETRY} Tentativa {tentativa + 1}: {e}")
                     time.sleep(1)
                 else:
-                    logger.warning(f"-> Falha ao selecionar vendedor: {e}. Continuando...")
+                    logger.warning(f"   {LogStyle.aviso('Falha ao selecionar vendedor:')} {e}. Continuando...")
 
     # --- Validações ---
     def tela_inicial_exibida(self, timeout: int = 10) -> bool:

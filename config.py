@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import logging
+import os
 from pathlib import Path
 from appium.options.android import UiAutomator2Options
 
@@ -8,8 +9,106 @@ from appium.options.android import UiAutomator2Options
 if sys.platform == 'win32':
     try:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        # Habilita ANSI colors no Windows
+        os.system('')
     except:
         pass
+
+
+# ============================================================================
+# 🎨 SISTEMA DE CORES PARA LOGS
+# ============================================================================
+class Cores:
+    """Cores ANSI para terminal."""
+    # Reset
+    RESET = "\033[0m"
+
+    # Cores básicas
+    PRETO = "\033[30m"
+    VERMELHO = "\033[31m"
+    VERDE = "\033[32m"
+    AMARELO = "\033[33m"
+    AZUL = "\033[34m"
+    MAGENTA = "\033[35m"
+    CIANO = "\033[36m"
+    BRANCO = "\033[37m"
+
+    # Cores brilhantes
+    VERMELHO_CLARO = "\033[91m"
+    VERDE_CLARO = "\033[92m"
+    AMARELO_CLARO = "\033[93m"
+    AZUL_CLARO = "\033[94m"
+    MAGENTA_CLARO = "\033[95m"
+    CIANO_CLARO = "\033[96m"
+
+    # Estilos
+    NEGRITO = "\033[1m"
+    DIM = "\033[2m"
+    SUBLINHADO = "\033[4m"
+
+
+# Emojis e cores por tipo de ação
+class LogStyle:
+    """Estilos de log por tipo de ação."""
+
+    # Ações principais
+    ACAO = f"{Cores.CIANO}→{Cores.RESET}"  # Início de ação
+    CLICK = f"{Cores.AMARELO}🖱️  [CLICK]{Cores.RESET}"
+    SCROLL = f"{Cores.MAGENTA}📜 [SCROLL]{Cores.RESET}"
+    SCROLL_NATIVO = f"{Cores.MAGENTA_CLARO}📜 [SCROLL NATIVO]{Cores.RESET}"
+    BUSCA = f"{Cores.AZUL}🔍 [BUSCA]{Cores.RESET}"
+    DIGITAR = f"{Cores.CIANO}⌨️  [DIGITAR]{Cores.RESET}"
+
+    # Resultados
+    OK = f"{Cores.VERDE}✅ [OK]{Cores.RESET}"
+    ERRO = f"{Cores.VERMELHO}❌ [ERRO]{Cores.RESET}"
+    SKIP = f"{Cores.DIM}⏭️  [SKIP]{Cores.RESET}"
+    RETRY = f"{Cores.AMARELO_CLARO}🔄 [RETRY]{Cores.RESET}"
+    FALLBACK = f"{Cores.AMARELO}⚡ [FALLBACK]{Cores.RESET}"
+
+    # Seções
+    FLUXO = f"{Cores.NEGRITO}{Cores.VERDE_CLARO}📋 [FLUXO]{Cores.RESET}"
+    CONFIG = f"{Cores.NEGRITO}{Cores.AZUL_CLARO}⚙️  [CONFIG]{Cores.RESET}"
+    DEBUG = f"{Cores.DIM}🐛 [DEBUG]{Cores.RESET}"
+    INFO = f"{Cores.CIANO_CLARO}ℹ️  [INFO]{Cores.RESET}"
+
+    # Teclado e lista
+    TECLADO = f"{Cores.CIANO}⌨️  [TECLADO]{Cores.RESET}"
+    LISTA = f"{Cores.AZUL_CLARO}📋 [LISTA]{Cores.RESET}"
+
+    # Validações
+    VALIDAR = f"{Cores.VERDE_CLARO}✔️  [VALIDAR]{Cores.RESET}"
+    AGUARDAR = f"{Cores.AMARELO}⏳ [AGUARDAR]{Cores.RESET}"
+
+    @staticmethod
+    def elemento(nome: str) -> str:
+        """Formata nome de elemento (ID, texto, botão)."""
+        return f"{Cores.AMARELO_CLARO}'{nome}'{Cores.RESET}"
+
+    @staticmethod
+    def valor(texto: str) -> str:
+        """Formata valor/texto digitado."""
+        return f"{Cores.CIANO_CLARO}'{texto}'{Cores.RESET}"
+
+    @staticmethod
+    def secao(titulo: str) -> str:
+        """Formata título de seção."""
+        return f"{Cores.NEGRITO}{Cores.VERDE_CLARO}{'─' * 3} {titulo} {'─' * 3}{Cores.RESET}"
+
+    @staticmethod
+    def sucesso(msg: str) -> str:
+        """Formata mensagem de sucesso."""
+        return f"{Cores.VERDE}{msg}{Cores.RESET}"
+
+    @staticmethod
+    def erro(msg: str) -> str:
+        """Formata mensagem de erro."""
+        return f"{Cores.VERMELHO}{msg}{Cores.RESET}"
+
+    @staticmethod
+    def aviso(msg: str) -> str:
+        """Formata mensagem de aviso."""
+        return f"{Cores.AMARELO}{msg}{Cores.RESET}"
 
 # Diretórios
 LOGS_DIR = Path("logs")

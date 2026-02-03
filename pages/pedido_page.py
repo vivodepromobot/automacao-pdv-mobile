@@ -3,7 +3,7 @@ Pedido Page - Page Object para tela de pedido de venda.
 """
 import time
 from pages.base_page import BasePage
-from config import logger
+from config import logger, LogStyle, Cores
 
 
 class PedidoPage(BasePage):
@@ -32,12 +32,12 @@ class PedidoPage(BasePage):
     # --- Ações ---
     def selecionar_vendedor(self):
         """Seleciona o vendedor."""
-        logger.info("-> Selecionando vendedor...")
+        logger.info(f"{LogStyle.ACAO} Selecionando vendedor...")
         self.clicar_por_id(self.TXT_VENDEDOR)
 
     def clicar_buscar_cliente(self):
         """Clica no botão buscar cliente."""
-        logger.info("-> Clicando em Buscar Cliente...")
+        logger.info(f"{LogStyle.ACAO} Clicando em {LogStyle.elemento('Buscar Cliente')}...")
         self.clicar_por_id(self.BTN_BUSCAR_CLIENTE)
 
     def iniciar_como_consumidor(self):
@@ -45,21 +45,21 @@ class PedidoPage(BasePage):
 
         Após selecionar vendedor, clica direto em 'Iniciar Venda' (button30).
         """
-        logger.info("-> Iniciando como consumidor (sem cliente)...")
+        logger.info(f"{LogStyle.ACAO} Iniciando como consumidor (sem cliente)...")
         # Clica direto no botão Iniciar Venda (sem buscar cliente)
         self.rolar_ate_id(self.BTN_INICIAR_VENDA)
         self.clicar_por_id(self.BTN_INICIAR_VENDA)
 
     def selecionar_cliente(self, identificador: str):
         """Seleciona cliente pelo identificador."""
-        logger.info(f"-> Selecionando cliente: {identificador}")
+        logger.info(f"{LogStyle.ACAO} Selecionando cliente: {LogStyle.valor(identificador)}")
         self.digitar_por_id(self.EDT_BUSCA_CLIENTE, identificador)
         self.pressionar_pesquisar()
         self.clicar_por_id(self.BTN_CONFIRMAR_CLIENTE)
 
     def adicionar_produto(self, codigo: str = "123"):
         """Adiciona produto pelo código."""
-        logger.info(f"-> Adicionando produto: {codigo}")
+        logger.info(f"{LogStyle.ACAO} Adicionando produto: {LogStyle.valor(codigo)}")
         time.sleep(2)  # Aguarda tela carregar após selecionar cliente
 
         # Tenta encontrar o botão, pode precisar de scroll em algumas telas
@@ -67,7 +67,7 @@ class PedidoPage(BasePage):
             self.clicar_por_id(self.BTN_ADICIONAR_PRODUTOS)
         except:
             # Se não encontrou, tenta scroll
-            logger.info("   [DEBUG] Botão não visível, tentando scroll...")
+            logger.info(f"   {LogStyle.DEBUG} Botão não visível, tentando scroll...")
             self.rolar_ate_id(self.BTN_ADICIONAR_PRODUTOS, max_scrolls=3)
             self.clicar_por_id(self.BTN_ADICIONAR_PRODUTOS)
 
@@ -76,7 +76,7 @@ class PedidoPage(BasePage):
 
     def clicar_avancar(self):
         """Clica no botão avançar."""
-        logger.info("-> Clicando em Avançar...")
+        logger.info(f"{LogStyle.ACAO} Clicando em {LogStyle.elemento('Avançar')}...")
         self.rolar_ate_id(self.BTN_PROXIMO)
         elemento = self.encontrar_clicavel_por_id(self.BTN_PROXIMO)
         time.sleep(1.5)
@@ -84,7 +84,7 @@ class PedidoPage(BasePage):
 
     def selecionar_pagamento_dinheiro(self):
         """Seleciona forma de pagamento dinheiro."""
-        logger.info("-> Selecionando pagamento: DINHEIRO")
+        logger.info(f"{LogStyle.ACAO} Selecionando pagamento: {LogStyle.valor('DINHEIRO')}")
         time.sleep(3)
         self.rolar_ate_texto("DINHEIRO")
         self.clicar_por_texto("DINHEIRO")
@@ -94,13 +94,13 @@ class PedidoPage(BasePage):
     def tratar_popup_bonus(self):
         """Trata popup de BÔNUS DISPONÍVEL se aparecer."""
         if self.texto_exibido(self.TXT_BONUS_DISPONIVEL, tempo_espera=3):
-            logger.info("-> Popup BÔNUS DISPONÍVEL detectado. Clicando em 'Mais tarde'...")
+            logger.info(f"{LogStyle.ACAO} Popup {LogStyle.elemento('BÔNUS DISPONÍVEL')} detectado. Clicando em 'Mais tarde'...")
             self.clicar_por_id(self.BTN_MAIS_TARDE)
             time.sleep(1)
 
     def finalizar_pedido(self):
         """Finaliza o pedido."""
-        logger.info("-> Finalizando pedido...")
+        logger.info(f"{LogStyle.ACAO} Finalizando pedido...")
         self.tratar_popup_bonus()  # Trata popup de bonus se aparecer
         self.rolar_ate_texto("Finalizar")
         self.rolar_ate_id(self.BTN_FINALIZAR)
@@ -108,14 +108,14 @@ class PedidoPage(BasePage):
 
     def confirmar_pedido_gerado(self):
         """Confirma o pedido gerado."""
-        logger.info("-> Confirmando pedido gerado...")
+        logger.info(f"{LogStyle.VALIDAR} Aguardando {LogStyle.elemento('Pedido gerado com sucesso!')}")
         self.aguardar_texto("Pedido gerado com sucesso!")
         self.rolar_ate_id(self.BTN_PEDIDO_GERADO)
         self.clicar_por_id(self.BTN_PEDIDO_GERADO)
 
     def executar_pedido_venda_consumidor(self, codigo_produto: str = "123"):
         """Executa fluxo completo de pedido de venda para consumidor (sem cliente)."""
-        logger.info("--- [FLUXO] Iniciando pedido de venda (CONSUMIDOR) ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Pedido de venda (CONSUMIDOR)')}")
 
         self.selecionar_vendedor()
         self.iniciar_como_consumidor()
@@ -125,11 +125,11 @@ class PedidoPage(BasePage):
         self.finalizar_pedido()
         self.confirmar_pedido_gerado()
 
-        logger.info("--- [FLUXO] Pedido de venda (CONSUMIDOR) concluído ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Pedido (CONSUMIDOR) concluído ✅')}")
 
     def executar_pedido_venda_cliente(self, id_cliente: str = "1", codigo_produto: str = "123"):
         """Executa fluxo completo de pedido de venda para cliente cadastrado."""
-        logger.info("--- [FLUXO] Iniciando pedido de venda (CLIENTE) ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Pedido de venda (CLIENTE)')}")
 
         self.selecionar_vendedor()
         self.clicar_buscar_cliente()
@@ -140,7 +140,7 @@ class PedidoPage(BasePage):
         self.finalizar_pedido()
         self.confirmar_pedido_gerado()
 
-        logger.info("--- [FLUXO] Pedido de venda (CLIENTE) concluído ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Pedido (CLIENTE) concluído ✅')}")
 
     def executar_pedido_venda(self, id_cliente: str = "1", codigo_produto: str = "123"):
         """Executa fluxo completo de pedido de venda (mantido para compatibilidade)."""

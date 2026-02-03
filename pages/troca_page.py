@@ -4,7 +4,7 @@ Troca Page - Page Object para tela de troca/devolução.
 import time
 from datetime import datetime
 from pages.base_page import BasePage
-from config import logger
+from config import logger, LogStyle, Cores
 from test_data import test_data
 
 
@@ -44,7 +44,7 @@ class TrocaPage(BasePage):
         if data is None:
             data = datetime.now().strftime('%d/%m/%Y')
 
-        logger.info(f"-> Definindo data inicial: {data}")
+        logger.info(f"{LogStyle.ACAO} Definindo data inicial: {LogStyle.valor(data)}")
 
         # Rola até encontrar o campo de período (não tenta fechar teclado)
         self.rolar_ate_id(self.INPUT_DATA_INICIAL, max_scrolls=10)
@@ -62,20 +62,20 @@ class TrocaPage(BasePage):
 
     def selecionar_primeira_nota(self):
         """Seleciona primeira nota da lista."""
-        logger.info("-> Selecionando primeira nota da lista...")
+        logger.info(f"{LogStyle.ACAO} Selecionando primeira nota da lista...")
         time.sleep(1)
         self.clicar_no_primeiro_da_lista_por_id(self.ITEM_LISTA_NOTAS)
 
     def selecionar_cliente(self, identificador: str):
         """Seleciona cliente pelo identificador."""
-        logger.info(f"-> Selecionando cliente: {identificador}")
+        logger.info(f"{LogStyle.ACAO} Selecionando cliente: {LogStyle.valor(identificador)}")
         self.digitar_por_id(self.EDT_BUSCA_CLIENTE, identificador)
         self.pressionar_pesquisar()
         self.clicar_por_id(self.BTN_CONFIRMAR_CLIENTE)
 
     def marcar_item_para_devolucao(self):
         """Marca item para devolução. Checkbox está no início da tela."""
-        logger.info("-> Marcando item para devolução...")
+        logger.info(f"{LogStyle.ACAO} Marcando item para devolução...")
         time.sleep(2)  # Aguarda tela carregar completamente
         self.clicar_por_id(self.CHECKBOX_ITEM)
 
@@ -93,21 +93,21 @@ class TrocaPage(BasePage):
 
     def adicionar_produto(self, codigo: str = "123"):
         """Adiciona produto pelo código."""
-        logger.info(f"-> Adicionando produto: {codigo}")
+        logger.info(f"{LogStyle.ACAO} Adicionando produto: {LogStyle.valor(codigo)}")
         self.clicar_por_id(self.BTN_ADICIONAR_PRODUTOS)
         self.digitar_por_id(self.EDT_BUSCA_PRODUTO, codigo)
         self.clicar_por_id(self.IMG_PRODUTO)
 
     def clicar_avancar(self):
         """Clica no botão avançar."""
-        logger.info("-> Clicando em Avançar...")
+        logger.info(f"{LogStyle.ACAO} Clicando em {LogStyle.elemento('Avançar')}...")
         elemento = self.encontrar_clicavel_por_id(self.BTN_PROXIMO)
         time.sleep(1.5)
         elemento.click()
 
     def selecionar_pagamento_bonus(self):
         """Seleciona pagamento via bônus da troca."""
-        logger.info("-> Selecionando pagamento: BÔNUS")
+        logger.info(f"{LogStyle.ACAO} Selecionando pagamento: {LogStyle.valor('BÔNUS')}")
         time.sleep(3)
         self.clicar_por_id(self.SWITCH_BONUS)
         self.clicar_por_id(self.BTN_AVANCAR)
@@ -115,31 +115,31 @@ class TrocaPage(BasePage):
     def tratar_popup_bonus(self):
         """Trata popup de BÔNUS DISPONÍVEL se aparecer."""
         if self.texto_exibido(self.TXT_BONUS_DISPONIVEL, tempo_espera=3):
-            logger.info("-> Popup BÔNUS DISPONÍVEL detectado. Clicando em 'Mais tarde'...")
+            logger.info(f"{LogStyle.ACAO} Popup {LogStyle.elemento('BÔNUS DISPONÍVEL')} detectado. Clicando em 'Mais tarde'...")
             self.clicar_por_id(self.BTN_MAIS_TARDE)
             time.sleep(1)
 
     def finalizar_venda(self):
         """Finaliza a venda pós-troca."""
-        logger.info("-> Finalizando venda...")
+        logger.info(f"{LogStyle.ACAO} Finalizando venda...")
         self.tratar_popup_bonus()  # Trata popup de bonus se aparecer
         self.rolar_ate_texto("Finalizar", max_scrolls=5)
         self.clicar_por_id(self.BTN_FINALIZAR)
 
     def responder_impressao_nao(self):
         """Responde NÃO ao diálogo de impressão."""
-        logger.info("-> Respondendo impressão: NÃO")
+        logger.info(f"{LogStyle.ACAO} Respondendo impressão: {LogStyle.valor('NÃO')}")
         self.clicar_se_existir(self.BTN_IMPRIMIR_NAO, tempo_espera=20)
         time.sleep(2)
 
     def concluir_venda(self):
         """Clica em concluir venda após sucesso."""
-        logger.info("-> Concluindo venda...")
+        logger.info(f"{LogStyle.ACAO} Concluindo venda...")
         self.clicar_por_id(self.BTN_CONFIRMAR_VENDA)
 
     def executar_troca(self, data: str = None):
         """Executa fluxo de troca (cliente) até confirmação. Validação feita pelo teste."""
-        logger.info("--- [FLUXO] Iniciando troca ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Troca')}")
 
         # Rolagem por ID é feita dentro de definir_data_inicial e clicar_consultar
         self.definir_data_inicial(data)
@@ -151,11 +151,11 @@ class TrocaPage(BasePage):
         self.clicar_devolver_itens()
         self.confirmar_dialogos()
 
-        logger.info("--- [FLUXO] Troca executada ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Troca executada ✅')}")
 
     def executar_troca_consumidor(self, data: str = None, codigo_produto: str = "123"):
         """Executa fluxo completo de troca para consumidor (com venda pós-troca)."""
-        logger.info("--- [FLUXO] Iniciando troca consumidor ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Troca consumidor')}")
 
         # Rolagem por ID é feita dentro de definir_data_inicial e clicar_consultar
         self.definir_data_inicial(data)
@@ -180,7 +180,7 @@ class TrocaPage(BasePage):
         self.finalizar_venda()
         self.responder_impressao_nao()
 
-        logger.info("--- [FLUXO] Troca consumidor concluída ---")
+        logger.info(f"{LogStyle.secao('📋 FLUXO - Troca consumidor concluída ✅')}")
 
     # --- Validações ---
     def sucesso_exibido(self, timeout: int = 10) -> bool:
@@ -189,6 +189,7 @@ class TrocaPage(BasePage):
 
     def validar_e_fechar_sucesso(self):
         """Valida sucesso e fecha popup."""
+        logger.info(f"{LogStyle.VALIDAR} Aguardando {LogStyle.elemento('Sucesso!')}")
         self.aguardar_texto("Sucesso!")
         self.clicar_por_id(self.BTN_DIALOGO_OK)
 
@@ -198,5 +199,6 @@ class TrocaPage(BasePage):
 
     def validar_venda_e_concluir(self):
         """Valida sucesso da venda e conclui."""
+        logger.info(f"{LogStyle.VALIDAR} Aguardando {LogStyle.elemento('Venda realizada com sucesso!')}")
         self.aguardar_texto("Venda realizada com sucesso!")
         self.concluir_venda()

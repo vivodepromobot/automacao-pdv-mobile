@@ -4,7 +4,7 @@ Venda Futura Page - Page Object para tela de venda futura.
 import time
 from appium.webdriver.common.appiumby import AppiumBy
 from pages.base_page import BasePage
-from config import logger
+from config import logger, LogStyle, Cores
 
 
 class VendaFuturaPage(BasePage):
