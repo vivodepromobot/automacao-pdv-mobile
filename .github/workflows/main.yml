@@ -13,7 +13,7 @@ on:
         default: ''
 
 env:
-  # Variáveis de ambiente para os testes (configure nos Secrets do GitHub)
+  # Variáveis de ambiente para os testes
   TEST_SERVER_IP: ${{ secrets.TEST_SERVER_IP }}
   TEST_SERVER_PORT: ${{ secrets.TEST_SERVER_PORT }}
   TEST_COMPANY: ${{ secrets.TEST_COMPANY }}
@@ -68,61 +68,73 @@ jobs:
           api-level: 29
           target: default
           arch: x86_64
-          force-avd-creation: false
-          emulator-boot-timeout: 180
+          # CORREÇÃO 1: Garante que o AVD seja criado se não existir
+          force-avd-creation: true
+          emulator-boot-timeout: 300 # Aumentado para 5 min
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -quit-on-boot-failure
           disable-animations: true
           script: |
             set -e  # Sai em caso de erro
 
-            # Aguarda emulador estar totalmente pronto (com timeout)
-            echo "⏳ Aguardando emulador..."
-            timeout 60 adb wait-for-device || { echo "Timeout aguardando device"; exit 1; }
-            sleep 5
+            # Debug: Lista AVDs disponíveis (Solução 2)
+            echo "🔍 Listando AVDs disponíveis..."
+            $ANDROID_HOME/emulator/emulator -list-avds || true
 
-            # Aguarda boot completo (max 60s)
-            for i in {1..60}; do
-              if [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" = "1" ]; then
-                echo "✅ Emulador pronto em ${i}s"
+            # CORREÇÃO 3: Espera robusta pelo dispositivo (Solução 1 e 3)
+            echo "⏳ Aguardando conexão ADB..."
+            timeout 300 adb wait-for-device || { echo "❌ Timeout aguardando adb device"; adb devices; exit 1; }
+            
+            echo "⏳ Aguardando boot completo do sistema..."
+            boot_completed=""
+            # Loop de retry mais robusto (30x 10s = 5 minutos)
+            for i in {1..30}; do
+              boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+              if [ "$boot_completed" = "1" ]; then
+                echo "✅ Emulador pronto e bootado!"
                 break
               fi
-              sleep 1
+              echo "🔄 Aguardando boot... ($i/30)"
+              sleep 10
             done
 
-            # Desabilita animações
+            if [ "$boot_completed" != "1" ]; then
+               echo "❌ Falha: O emulador não completou o boot a tempo."
+               adb logcat -d | tail -n 100
+               exit 1
+            fi
+
+            # Desabilita animações para estabilidade
+            echo "🔧 Desabilitando animações..."
             adb shell settings put global window_animation_scale 0
             adb shell settings put global transition_animation_scale 0
             adb shell settings put global animator_duration_scale 0
 
             # Instala o APK
             echo "📱 Instalando APK..."
-            adb install -r -g apps/app-parent-playstore-release.apk || { echo "Falha ao instalar APK"; exit 1; }
+            adb install -r -g apps/app-parent-playstore-release.apk || { echo "❌ Falha ao instalar APK"; exit 1; }
 
             # Verifica instalação
-            adb shell pm list packages | grep bshop || { echo "ERRO: App não encontrado!"; exit 1; }
+            adb shell pm list packages | grep bshop || { echo "❌ ERRO: App não encontrado após instalação!"; exit 1; }
 
-            # Inicia app
-            echo "🚀 Iniciando app..."
+            # Inicia app (Opcional, pois o Appium inicia, mas bom para garantir)
+            echo "🚀 Iniciando app para teste de sanidade..."
             adb shell am start -n com.serverinfo.bshoppdv.playstore/com.serverinfo.bshoppdv.activities.LoginPDVActivity
-            sleep 3
+            sleep 5
 
-            # Screenshot debug
-            adb shell screencap -p /sdcard/debug.png
-            adb pull /sdcard/debug.png ./debug_screenshot.png || true
-
-            # Inicia Appium
-            echo "🔧 Iniciando Appium..."
-            appium --relaxed-security --log-level error &
+            # Inicia Appium em background
+            echo "🔧 Iniciando servidor Appium..."
+            appium --relaxed-security --log-level error > appium.log 2>&1 &
             APPIUM_PID=$!
-            sleep 10
+            sleep 15
 
-            # Verifica Appium
-            curl -s http://127.0.0.1:4723/status || echo "Appium não respondeu"
+            # Verifica status do Appium
+            curl -s http://127.0.0.1:4723/status || { echo "❌ Appium não respondeu"; cat appium.log; exit 1; }
 
             # Roda testes
             echo "🧪 Executando testes..."
             TEST_FILTER="${{ github.event.inputs.test_filter }}"
             TEST_RESULT=0
+            
             if [ -n "$TEST_FILTER" ]; then
               pytest tests/ -v -s -k "$TEST_FILTER" --alluredir=allure-results || TEST_RESULT=$?
             else
@@ -152,6 +164,6 @@ jobs:
           path: |
             allure-report/
             logs/
+            appium.log
           retention-days: 7
           if-no-files-found: ignore
-
