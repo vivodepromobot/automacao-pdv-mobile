@@ -1,0 +1,164 @@
+================================================================================
+            COMO RODAR OS TESTES COM RELATORIOS (HTML + ALLURE)
+================================================================================
+
+IMPORTANTE: Sempre execute os comandos a partir da pasta do projeto:
+> cd D:\testes_appium
+
+
+================================================================================
+1. TESTES UNITARIOS (SEM Appium - roda em qualquer lugar)
+================================================================================
+
+TEMPO: ~0.2 segundos
+REQUISITOS: Nenhum (sem Appium, sem dispositivo)
+
+--- Comando com HTML ---
+pytest tests/unit/ -v --html=reports/unit_tests.html --self-contained-html
+
+--- Comando com Allure ---
+pytest tests/unit/ -v --alluredir=allure-results/unit
+
+--- Comando com AMBOS (HTML + Allure) ---
+pytest tests/unit/ -v --html=reports/unit_tests.html --self-contained-html --alluredir=allure-results/unit
+
+--- Ver relatorio Allure ---
+allure serve allure-results/unit
+
+
+================================================================================
+2. TESTES SMOKE E2E (COM Appium - validacao rapida)
+================================================================================
+
+TEMPO: ~2 minutos
+REQUISITOS: Appium Server rodando + Dispositivo conectado
+
+--- PASSO 1: Inicie o Appium (em um CMD separado) ---
+appium
+
+--- PASSO 2: Rode os testes (em outro CMD) ---
+
+--- Comando com HTML ---
+pytest tests/smoke/ -v --html=reports/smoke_tests.html --self-contained-html
+
+--- Comando com Allure ---
+pytest tests/smoke/ -v --alluredir=allure-results/smoke
+
+--- Comando com AMBOS (HTML + Allure) ---
+pytest tests/smoke/ -v --html=reports/smoke_tests.html --self-contained-html --alluredir=allure-results/smoke
+
+--- Ver relatorio Allure ---
+allure serve allure-results/smoke
+
+
+================================================================================
+3. TESTES E2E COMPLETOS (COM Appium - todos os fluxos)
+================================================================================
+
+TEMPO: ~20-30 minutos
+REQUISITOS: Appium Server rodando + Dispositivo conectado
+
+--- PASSO 1: Inicie o Appium (em um CMD separado) ---
+appium
+
+--- PASSO 2: Rode os testes (em outro CMD) ---
+
+--- Comando com HTML ---
+pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke --html=reports/e2e_tests.html --self-contained-html
+
+--- Comando com Allure ---
+pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke --alluredir=allure-results/e2e
+
+--- Comando com AMBOS (HTML + Allure) ---
+pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke --html=reports/e2e_tests.html --self-contained-html --alluredir=allure-results/e2e
+
+--- Ver relatorio Allure ---
+allure serve allure-results/e2e
+
+
+================================================================================
+                    FLUXO COMPLETO PRE-RELEASE (COPY-PASTE)
+================================================================================
+
+Execute na ordem. Se algum falhar, PARE e corrija antes de continuar.
+
+--- PASSO 1: Unitarios ---
+pytest tests/unit/ -v --html=reports/01_unit_tests.html --self-contained-html --alluredir=allure-results/unit
+
+--- PASSO 2: Smoke (precisa Appium rodando) ---
+pytest tests/smoke/ -v --html=reports/02_smoke_tests.html --self-contained-html --alluredir=allure-results/smoke
+
+--- PASSO 3: E2E Completo (precisa Appium rodando) ---
+pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke --html=reports/03_e2e_tests.html --self-contained-html --alluredir=allure-results/e2e
+
+
+================================================================================
+                    COMANDO UNICO (TUDO DE UMA VEZ)
+================================================================================
+
+Se quiser rodar TUDO em sequencia com um unico comando:
+
+--- Windows (CMD) ---
+pytest tests/unit/ -v --html=reports/01_unit.html --self-contained-html --alluredir=allure-results/unit && pytest tests/smoke/ -v --html=reports/02_smoke.html --self-contained-html --alluredir=allure-results/smoke && pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke --html=reports/03_e2e.html --self-contained-html --alluredir=allure-results/e2e
+
+--- Windows (PowerShell) ---
+pytest tests/unit/ -v --html=reports/01_unit.html --self-contained-html --alluredir=allure-results/unit; if ($?) { pytest tests/smoke/ -v --html=reports/02_smoke.html --self-contained-html --alluredir=allure-results/smoke }; if ($?) { pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke --html=reports/03_e2e.html --self-contained-html --alluredir=allure-results/e2e }
+
+
+================================================================================
+                    VER RELATORIOS ALLURE (TODOS JUNTOS)
+================================================================================
+
+Para ver um relatorio Allure combinando todos os resultados:
+
+allure serve allure-results
+
+Ou gerar HTML estatico:
+
+allure generate allure-results -o allure-report --clean
+start allure-report/index.html
+
+
+================================================================================
+                    ONDE FICAM OS RELATORIOS
+================================================================================
+
+Apos rodar os comandos, os relatorios ficam em:
+
+reports/
+|-- 01_unit_tests.html      # Relatorio HTML dos unitarios
+|-- 02_smoke_tests.html     # Relatorio HTML do smoke
+|-- 03_e2e_tests.html       # Relatorio HTML do E2E
+
+allure-results/
+|-- unit/                   # Dados Allure dos unitarios
+|-- smoke/                  # Dados Allure do smoke
+|-- e2e/                    # Dados Allure do E2E
+
+Para abrir o HTML, basta dar duplo-clique no arquivo.
+Para abrir o Allure, use: allure serve allure-results/[pasta]
+
+
+================================================================================
+                    DICAS EXTRAS
+================================================================================
+
+1. CRIAR PASTA REPORTS (se nao existir):
+   mkdir reports
+
+2. LIMPAR RELATORIOS ANTIGOS:
+   rmdir /s /q reports
+   rmdir /s /q allure-results
+   mkdir reports
+
+3. RODAR COM DISPOSITIVO ESPECIFICO:
+   pytest tests/smoke/ -v --device-id=XXXXX --html=reports/smoke.html --self-contained-html
+
+4. RODAR APENAS TESTES QUE FALHARAM ANTES:
+   pytest tests/ -v --lf --html=reports/rerun.html --self-contained-html
+
+5. PARAR NO PRIMEIRO ERRO:
+   pytest tests/unit/ -v -x --html=reports/unit.html --self-contained-html
+
+
+================================================================================

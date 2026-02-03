@@ -11,7 +11,9 @@
       "Bash(dir /b /o-d \"d:\\\\testes_appium\\\\logs\\\\screenshots\\\\*.png\")",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Multi-device support + voltar tela após troca\n\n- base_page: app_package dinâmico da sessão do driver \\(não global\\)\n- config: systemPort único por device para evitar conflitos\n- troca_page: voltar_tela\\(confirmar=True\\) após troca cliente\n- home_page: seleção de vendedor por ID \\(primeiro da lista\\)\n- venda_page: suporte tela \"Selecionar Cliente\" L400/Stone\n- parallel_runner: delay 8s entre devices\n- main.yml: timeouts otimizados e kill Appium explícito\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(python parallel_runner.py:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(python -m pytest:*)",
+      "Skill(qa:qa-test-impl)"
     ]
   }
 }

@@ -1,0 +1,311 @@
+================================================================================
+              FLUXO COMPLETO DE TESTES - PDV MOBILE
+================================================================================
+
+Este documento explica a estrategia de testes do projeto e como executar
+cada tipo de teste.
+
+
+================================================================================
+                         PIRAMIDE DE TESTES
+================================================================================
+
+                    /\
+                   /  \        E2E COMPLETO
+                  /    \       (20-30 min)
+                 /------\      Appium + Dispositivo
+                /        \
+               /----------\    SMOKE E2E
+              /            \   (2 min)
+             /--------------\  Appium + Dispositivo
+            /                \
+           /------------------\   LOCATORS
+          /                    \  (0.1 seg)
+         /----------------------\ Sem Appium
+        /                        \
+       /--------------------------\  UNITARIOS
+      /                            \ (0.2 seg)
+     /------------------------------\Sem Appium
+
+
+================================================================================
+                      TIPOS DE TESTE DISPONIVEIS
+================================================================================
+
+1. TESTES UNITARIOS (92 testes)
+   - Local: tests/unit/
+   - Tempo: ~0.2 segundos
+   - Requisitos: NENHUM (sem Appium, sem dispositivo)
+   - O que testa: Logica do codigo (ifs, loops, chamadas de metodos)
+
+2. TESTES DE LOCATORS (8 testes)
+   - Local: tests/unit/test_locators_unit.py
+   - Tempo: ~0.1 segundos
+   - Requisitos: NENHUM (sem Appium, sem dispositivo)
+   - O que testa: Se os IDs definidos no codigo existem no app
+
+3. TESTES SMOKE E2E (5 testes)
+   - Local: tests/smoke/
+   - Tempo: ~2 minutos
+   - Requisitos: Appium Server + Dispositivo conectado
+   - O que testa: App abre, login funciona, navegacao basica
+
+4. TESTES E2E COMPLETOS (10+ testes)
+   - Local: tests/
+   - Tempo: ~20-30 minutos
+   - Requisitos: Appium Server + Dispositivo conectado
+   - O que testa: Fluxos completos (venda, troca, pedido, etc)
+
+
+================================================================================
+                    FLUXO RECOMENDADO DE EXECUCAO
+================================================================================
+
+CENARIO 1: Desenvolvimento diario (apos alterar codigo)
+---------------------------------------------------------
+
+    1. Rode os UNITARIOS (obrigatorio)
+       > pytest tests/unit/ -v
+
+    2. Se passou, faca commit
+
+
+CENARIO 2: Antes de um Pull Request / Merge Request
+---------------------------------------------------------
+
+    1. Rode os UNITARIOS
+       > pytest tests/unit/ -v
+
+    2. Rode os LOCATORS (opcional mas recomendado)
+       > pytest tests/unit/test_locators_unit.py -v
+
+    3. Se tudo passou, abra o PR
+
+
+CENARIO 3: Antes de uma Release / Deploy
+---------------------------------------------------------
+
+    1. Rode os UNITARIOS
+       > pytest tests/unit/ -v
+
+    2. Rode os LOCATORS
+       > pytest tests/unit/test_locators_unit.py -v
+
+    3. Inicie o Appium Server
+       > appium
+
+    4. Conecte o dispositivo
+
+    5. Rode o SMOKE E2E
+       > pytest tests/smoke/ -v -m smoke
+
+    6. Se SMOKE passou, rode E2E COMPLETO
+       > pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke
+
+    7. Se tudo passou, RELEASE APROVADA!
+
+
+CENARIO 4: CI/CD Pipeline (GitHub Actions, GitLab CI)
+---------------------------------------------------------
+
+    stages:
+      - unit_tests      # Sempre roda (rapido)
+      - smoke_tests     # Roda se unit passou (precisa Appium)
+      - e2e_tests       # Roda se smoke passou (demorado)
+
+
+================================================================================
+                         COMANDOS RAPIDOS
+================================================================================
+
+# -----------------------------------------------------------------------------
+# TESTES SEM APPIUM (rodam em qualquer lugar)
+# -----------------------------------------------------------------------------
+
+# Todos os unitarios
+pytest tests/unit/ -v
+
+# Apenas logica (sem locators)
+pytest tests/unit/ -v --ignore=tests/unit/test_locators_unit.py
+
+# Apenas locators
+pytest tests/unit/test_locators_unit.py -v
+
+# Unitario de um arquivo especifico
+pytest tests/unit/test_login_page_unit.py -v
+
+
+# -----------------------------------------------------------------------------
+# TESTES COM APPIUM (precisam de servidor + dispositivo)
+# -----------------------------------------------------------------------------
+
+# Smoke (rapido, verifica ambiente)
+pytest tests/smoke/ -v
+
+# E2E completo (demorado, todos os fluxos)
+pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke
+
+# E2E com dispositivo especifico
+pytest tests/ -v --device-id=XXXXXXX --ignore=tests/unit --ignore=tests/smoke
+
+# Apenas um teste E2E especifico
+pytest tests/test_venda_cliente.py -v
+
+
+# -----------------------------------------------------------------------------
+# RELATORIOS
+# -----------------------------------------------------------------------------
+
+# HTML simples
+pytest tests/unit/ -v --html=reports/unit.html --self-contained-html
+
+# Allure (mais bonito)
+pytest tests/ -v --alluredir=allure-results
+allure serve allure-results
+
+
+================================================================================
+                    ESTRUTURA DE PASTAS DE TESTES
+================================================================================
+
+tests/
+|
+|-- unit/                              # TESTES UNITARIOS (sem Appium)
+|   |-- test_login_page_unit.py        # 10 testes
+|   |-- test_home_page_unit.py         # 11 testes
+|   |-- test_venda_page_unit.py        # 15 testes
+|   |-- test_pedido_page_unit.py       # 13 testes
+|   |-- test_troca_page_unit.py        # 17 testes
+|   |-- test_venda_futura_page_unit.py # 14 testes
+|   |-- test_consulta_pedido_page_unit.py # 12 testes
+|   |-- test_locators_unit.py          # 8 testes (validacao de IDs)
+|   |-- COMO_RODAR_TESTES.txt          # Instrucoes dos unitarios
+|
+|-- smoke/                             # TESTES SMOKE E2E (com Appium)
+|   |-- test_smoke_e2e.py              # 5 testes (app abre, login, navegacao)
+|
+|-- test_login.py                      # E2E: Login
+|-- test_venda_cliente.py              # E2E: Venda para cliente
+|-- test_venda_consumidor.py           # E2E: Venda para consumidor
+|-- test_troca_cliente.py              # E2E: Troca cliente
+|-- test_troca_consumidor.py           # E2E: Troca consumidor
+|-- test_pedido_venda.py               # E2E: Pedido de venda
+|-- test_consulta_pedido.py            # E2E: Consulta e finaliza pedido
+|-- test_venda_futura.py               # E2E: Venda futura (loja)
+|-- test_venda_futura_domicilio.py     # E2E: Venda futura (domicilio)
+
+
+================================================================================
+                    O QUE CADA TIPO DE TESTE GARANTE
+================================================================================
+
++------------------+-----------------------------------------------------------+
+| TIPO             | O QUE GARANTE                                             |
++------------------+-----------------------------------------------------------+
+| UNITARIO         | - Metodos chamam outros metodos na ordem certa            |
+|                  | - IFs e ELSEs funcionam corretamente                      |
+|                  | - Valores padrao sao usados quando nao informados         |
+|                  | - Excecoes sao lancadas quando esperado                   |
++------------------+-----------------------------------------------------------+
+| LOCATORS         | - IDs definidos no codigo existem no app                  |
+|                  | - Nenhum locator esta vazio                               |
+|                  | - IDs compartilhados sao consistentes entre pages         |
++------------------+-----------------------------------------------------------+
+| SMOKE E2E        | - App abre sem crashar                                    |
+|                  | - Login funciona                                          |
+|                  | - Tela inicial carrega                                    |
+|                  | - Navegacao basica funciona                               |
++------------------+-----------------------------------------------------------+
+| E2E COMPLETO     | - Fluxos completos funcionam no dispositivo real          |
+|                  | - Integracao com servidor funciona                        |
+|                  | - Tempos de espera sao adequados                          |
+|                  | - App se comporta como esperado em producao               |
++------------------+-----------------------------------------------------------+
+
+
+================================================================================
+                    O QUE CADA TIPO DE TESTE NAO GARANTE
+================================================================================
+
++------------------+-----------------------------------------------------------+
+| TIPO             | O QUE NAO GARANTE (limitacoes)                            |
++------------------+-----------------------------------------------------------+
+| UNITARIO         | - Que os IDs existem no app real                          |
+|                  | - Que o Appium vai funcionar                              |
+|                  | - Que os tempos de espera sao suficientes                 |
++------------------+-----------------------------------------------------------+
+| LOCATORS         | - Que o elemento esta visivel na tela                     |
+|                  | - Que o elemento e clicavel                               |
+|                  | - Posicao do elemento na tela                             |
++------------------+-----------------------------------------------------------+
+| SMOKE E2E        | - Que TODOS os fluxos funcionam                           |
+|                  | - Casos de borda                                          |
+|                  | - Fluxos complexos (troca, venda futura)                  |
++------------------+-----------------------------------------------------------+
+| E2E COMPLETO     | - Performance em escala                                   |
+|                  | - Comportamento com dados reais de producao               |
+|                  | - Todos os dispositivos possiveis                         |
++------------------+-----------------------------------------------------------+
+
+
+================================================================================
+                         QUANDO ATUALIZAR OS TESTES
+================================================================================
+
+SITUACAO                           | ACAO NECESSARIA
+-----------------------------------|-----------------------------------------------
+Mudou logica de um metodo          | Atualizar teste UNITARIO correspondente
+Adicionou novo ID/locator          | Adicionar em IDS_VALIDOS_DO_APP (locators)
+App foi atualizado                 | Extrair novos IDs do app e atualizar locators
+Novo fluxo adicionado              | Criar teste E2E + unitarios das pages
+Mudou tela de login                | Atualizar SMOKE + unitarios do LoginPage
+
+
+================================================================================
+                    COMO EXTRAIR IDs DO APP (para locators)
+================================================================================
+
+1. Conecte o dispositivo com o app aberto na tela desejada
+
+2. Execute no terminal:
+   > adb shell uiautomator dump /sdcard/ui.xml
+   > adb pull /sdcard/ui.xml
+
+3. Abra o arquivo ui.xml e procure por "resource-id"
+
+4. Adicione os novos IDs em:
+   tests/unit/test_locators_unit.py -> IDS_VALIDOS_DO_APP
+
+
+================================================================================
+                              RESUMO FINAL
+================================================================================
+
+REGRA DE OURO:
+   Unitarios = rodam SEMPRE (a cada commit)
+   Smoke     = roda ANTES dos E2E (verifica ambiente)
+   E2E       = roda ANTES de release (validacao final)
+
+TEMPO TOTAL:
+   Unitarios + Locators: ~1 segundo
+   Smoke E2E: ~2 minutos
+   E2E Completo: ~30 minutos
+
+CONFIANCA:
+   Se TODOS passarem -> RELEASE SEGURA!
+
+
+================================================================================
+                        COMANDOS COPY-PASTE
+================================================================================
+
+# --- EXECUCAO RAPIDA (dia a dia) ---
+pytest tests/unit/ -v
+
+# --- EXECUCAO PRE-RELEASE (completa) ---
+pytest tests/unit/ -v && pytest tests/smoke/ -v && pytest tests/ -v --ignore=tests/unit --ignore=tests/smoke
+
+# --- GERAR RELATORIO HTML ---
+pytest tests/unit/ --html=reports/unit.html --self-contained-html
+
+================================================================================

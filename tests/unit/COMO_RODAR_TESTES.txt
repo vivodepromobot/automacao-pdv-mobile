@@ -1,0 +1,128 @@
+================================================================================
+                    COMO EXECUTAR OS TESTES UNITARIOS
+================================================================================
+
+Os testes unitarios estao na pasta: tests/unit/
+Todos usam mocks e NAO precisam de emulador ou dispositivo.
+
+--------------------------------------------------------------------------------
+1. EXECUTAR TODOS OS TESTES UNITARIOS
+--------------------------------------------------------------------------------
+
+    pytest tests/unit/ -v
+
+    # Versao resumida (sem detalhes)
+    pytest tests/unit/
+
+
+--------------------------------------------------------------------------------
+2. EXECUTAR ARQUIVO ESPECIFICO
+--------------------------------------------------------------------------------
+
+    # Apenas testes do LoginPage
+    pytest tests/unit/test_login_page_unit.py -v
+
+    # Apenas testes do HomePage
+    pytest tests/unit/test_home_page_unit.py -v
+
+    # Apenas testes do VendaPage
+    pytest tests/unit/test_venda_page_unit.py -v
+
+    # Apenas testes do PedidoPage
+    pytest tests/unit/test_pedido_page_unit.py -v
+
+    # Apenas testes do TrocaPage
+    pytest tests/unit/test_troca_page_unit.py -v
+
+    # Apenas testes do VendaFuturaPage
+    pytest tests/unit/test_venda_futura_page_unit.py -v
+
+    # Apenas testes do ConsultaPedidoPage
+    pytest tests/unit/test_consulta_pedido_page_unit.py -v
+
+
+--------------------------------------------------------------------------------
+3. EXECUTAR CLASSE OU TESTE ESPECIFICO
+--------------------------------------------------------------------------------
+
+    # Apenas uma classe de testes
+    pytest tests/unit/test_home_page_unit.py::TestHomePageIniciarVenda -v
+
+    # Apenas um teste especifico
+    pytest tests/unit/test_login_page_unit.py::TestLoginPageGarantirLogin::test_garantir_login_quando_ja_logado_retorna_true_imediatamente -v
+
+
+--------------------------------------------------------------------------------
+4. OPCOES UTEIS
+--------------------------------------------------------------------------------
+
+    # Com cobertura de codigo (gera relatorio HTML em htmlcov/)
+    pytest tests/unit/ -v --cov=pages --cov-report=html
+
+    # Parar no primeiro erro
+    pytest tests/unit/ -v -x
+
+    # Mostrar prints durante execucao
+    pytest tests/unit/ -v -s
+
+    # Executar em paralelo (mais rapido - requer pytest-xdist)
+    pytest tests/unit/ -v -n auto
+
+    # Modo silencioso (apenas erros)
+    pytest tests/unit/ -q
+
+
+--------------------------------------------------------------------------------
+5. GERAR RELATORIOS
+--------------------------------------------------------------------------------
+
+    # Relatorio HTML simples
+    pytest tests/unit/ -v --html=reports/unit_tests.html --self-contained-html
+
+    # Relatorio Allure (requer allure-pytest)
+    pytest tests/unit/ -v --alluredir=allure-results
+    allure serve allure-results
+
+
+--------------------------------------------------------------------------------
+6. FILTRAR TESTES POR NOME
+--------------------------------------------------------------------------------
+
+    # Executar apenas testes que contenham "bonus" no nome
+    pytest tests/unit/ -v -k "bonus"
+
+    # Executar apenas testes que contenham "login" no nome
+    pytest tests/unit/ -v -k "login"
+
+    # Executar testes que NAO contenham "fluxo" no nome
+    pytest tests/unit/ -v -k "not fluxo"
+
+
+--------------------------------------------------------------------------------
+7. ARQUIVOS DE TESTE DISPONIVEIS
+--------------------------------------------------------------------------------
+
+    tests/unit/
+    ├── test_login_page_unit.py          (10 testes)
+    ├── test_home_page_unit.py           (11 testes)
+    ├── test_consulta_pedido_page_unit.py (12 testes)
+    ├── test_pedido_page_unit.py         (13 testes)
+    ├── test_venda_page_unit.py          (15 testes)
+    ├── test_venda_futura_page_unit.py   (14 testes)
+    └── test_troca_page_unit.py          (17 testes)
+
+    TOTAL: 92 testes unitarios
+
+
+--------------------------------------------------------------------------------
+8. DEPENDENCIAS NECESSARIAS
+--------------------------------------------------------------------------------
+
+    pip install pytest
+    pip install pytest-html          # Para relatorios HTML
+    pip install pytest-cov           # Para cobertura de codigo
+    pip install pytest-xdist         # Para execucao paralela
+    pip install allure-pytest        # Para relatorios Allure
+
+
+================================================================================
