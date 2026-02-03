@@ -68,42 +68,55 @@ jobs:
           api-level: 29
           target: default
           arch: x86_64
-          # CORREÇÃO 1: Garante que o AVD seja criado se não existir
+          # GARANTIA: Cria o AVD se ele não existir
           force-avd-creation: true
-          emulator-boot-timeout: 300 # Aumentado para 5 min
+          # AUMENTO: Timeout do emulador para 5 minutos (era 60s implícito)
+          emulator-boot-timeout: 300
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -quit-on-boot-failure
           disable-animations: true
           script: |
             set -e  # Sai em caso de erro
 
-            # Debug: Lista AVDs disponíveis (Solução 2)
+            # Debug: Lista AVDs para garantir que 'default' existe
             echo "🔍 Listando AVDs disponíveis..."
             $ANDROID_HOME/emulator/emulator -list-avds || true
 
-            # CORREÇÃO 3: Espera robusta pelo dispositivo (Solução 1 e 3)
-            echo "⏳ Aguardando conexão ADB..."
+            # Reinicia servidor ADB para evitar estado 'offline'
+            adb kill-server
+            adb start-server
+
+            echo "⏳ Aguardando conexão ADB (Timeout 300s)..."
+            # Aguarda o dispositivo aparecer no USB
             timeout 300 adb wait-for-device || { echo "❌ Timeout aguardando adb device"; adb devices; exit 1; }
             
             echo "⏳ Aguardando boot completo do sistema..."
             boot_completed=""
-            # Loop de retry mais robusto (30x 10s = 5 minutos)
+            
+            # Loop de retry robusto (30 tentativas de 10s = 5 minutos)
             for i in {1..30}; do
+              # Debug: Mostra dispositivos conectados
+              adb devices
+              
+              # Tenta ler a propriedade de boot
               boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+              
               if [ "$boot_completed" = "1" ]; then
                 echo "✅ Emulador pronto e bootado!"
                 break
               fi
+              
               echo "🔄 Aguardando boot... ($i/30)"
               sleep 10
             done
 
             if [ "$boot_completed" != "1" ]; then
                echo "❌ Falha: O emulador não completou o boot a tempo."
-               adb logcat -d | tail -n 100
+               # Captura logs do logcat para entender o crash
+               adb logcat -d | tail -n 50
                exit 1
             fi
 
-            # Desabilita animações para estabilidade
+            # Desabilita animações para estabilidade dos testes
             echo "🔧 Desabilitando animações..."
             adb shell settings put global window_animation_scale 0
             adb shell settings put global transition_animation_scale 0
@@ -113,11 +126,11 @@ jobs:
             echo "📱 Instalando APK..."
             adb install -r -g apps/app-parent-playstore-release.apk || { echo "❌ Falha ao instalar APK"; exit 1; }
 
-            # Verifica instalação
+            # Verifica se instalou corretamente
             adb shell pm list packages | grep bshop || { echo "❌ ERRO: App não encontrado após instalação!"; exit 1; }
 
-            # Inicia app (Opcional, pois o Appium inicia, mas bom para garantir)
-            echo "🚀 Iniciando app para teste de sanidade..."
+            # Inicia app (Teste de sanidade)
+            echo "🚀 Iniciando app..."
             adb shell am start -n com.serverinfo.bshoppdv.playstore/com.serverinfo.bshoppdv.activities.LoginPDVActivity
             sleep 5
 
