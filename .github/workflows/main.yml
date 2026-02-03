@@ -1,94 +1,88 @@
-      - name: 🧪 Rodar testes no Emulador Android
+- name: 🧪 Rodar testes no Emulador Android
         uses: reactivecircus/android-emulator-runner@v2
         timeout-minutes: 30
         with:
           api-level: 29
           target: default
           arch: x86_64
+          # GARANTIA: Cria o AVD se ele não existir (Corrige erro de imagem faltando)
           force-avd-creation: true
+          # AUMENTO: Timeout do emulador para 5 minutos (era 180s/60s)
           emulator-boot-timeout: 300
-          # Ajuste: desativa aceleração de hardware/GPU que podem falhar no runner
-          emulator-options: -no-snapshot-save -no-window -no-audio -no-boot-anim -camera-back none -quit-on-boot-failure -accel off -gpu off
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -quit-on-boot-failure
           disable-animations: true
           script: |
-            set -e
+            set -e  # Sai em caso de erro crítico
 
-            echo "🔍 Listando AVDs..."
+            # Debug: Lista AVDs para garantir que foi criado
+            echo "🔍 Listando AVDs disponíveis..."
             $ANDROID_HOME/emulator/emulator -list-avds || true
 
+            # Reinicia servidor ADB para evitar estado 'offline' ou travado
             echo "🔄 Reiniciando ADB..."
-            adb kill-server || true
+            adb kill-server
             adb start-server
 
-            # 1) Espera o dispositivo aparecer no `adb devices`
-            echo "⏳ Aguardando o emulador registrar no adb (timeout 300s)..."
-            EMULATOR_SERIAL=""
-            for i in {1..30}; do
-              EMULATOR_SERIAL=$(adb devices | awk '/emulator-/{print $1; exit}' || true)
-              if [ -n "$EMULATOR_SERIAL" ]; then
-                echo "✅ Emulador registrado: $EMULATOR_SERIAL"
-                break
-              fi
-              echo "🔄 Ainda não registrado ($i/30)..."
-              sleep 10
-            done
-
-            if [ -z "$EMULATOR_SERIAL" ]; then
-              echo "❌ Nenhum emulador encontrado via adb"
-              adb devices
-              ps aux | egrep 'emulator|qemu' || true
-              exit 1
-            fi
-
-            # 2) Espera o boot completar usando o serial detectado
+            echo "⏳ Aguardando conexão ADB (Timeout 300s)..."
+            # Aguarda o dispositivo aparecer no USB por até 5 minutos
+            timeout 300 adb wait-for-device || { echo "❌ Timeout aguardando adb device"; adb devices; exit 1; }
+            
             echo "⏳ Aguardando boot completo do sistema..."
             boot_completed=""
+            
+            # Loop de retry robusto (30 tentativas de 10s = 5 minutos)
             for i in {1..30}; do
-              boot_completed=$(adb -s "$EMULATOR_SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)
+              # Tenta ler a propriedade de boot (ignorando erros de 'device not found' temporários)
+              boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+              
               if [ "$boot_completed" = "1" ]; then
                 echo "✅ Emulador pronto e bootado!"
                 break
               fi
+              
               echo "🔄 Aguardando boot... ($i/30)"
               sleep 10
             done
 
             if [ "$boot_completed" != "1" ]; then
-              echo "❌ Falha: O emulador não completou o boot a tempo."
-              echo "=== adb devices ==="
-              adb devices
-              echo "=== ps (emulator/qemu) ==="
-              ps aux | egrep 'emulator|qemu' || true
-              echo "=== Últimas linhas do logcat ==="
-              adb -s "$EMULATOR_SERIAL" logcat -d | tail -n 200 || true
-              exit 1
+               echo "❌ Falha: O emulador não completou o boot a tempo."
+               # Captura logs do logcat para entender o motivo (crash, erro de sistema)
+               adb logcat -d | tail -n 50
+               exit 1
             fi
 
+            # Desabilita animações para estabilidade dos testes
             echo "🔧 Desabilitando animações..."
-            adb -s "$EMULATOR_SERIAL" shell settings put global window_animation_scale 0
-            adb -s "$EMULATOR_SERIAL" shell settings put global transition_animation_scale 0
-            adb -s "$EMULATOR_SERIAL" shell settings put global animator_duration_scale 0
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
 
+            # Instala o APK
             echo "📱 Instalando APK..."
-            adb -s "$EMULATOR_SERIAL" install -r -g apps/app-parent-playstore-release.apk || { echo "❌ Falha ao instalar APK"; exit 1; }
+            adb install -r -g apps/app-parent-playstore-release.apk || { echo "❌ Falha ao instalar APK"; exit 1; }
 
-            adb -s "$EMULATOR_SERIAL" shell pm list packages | grep bshop || { echo "❌ ERRO: App não encontrado após instalação!"; exit 1; }
+            # Verifica se instalou corretamente
+            adb shell pm list packages | grep bshop || { echo "❌ ERRO: App não encontrado após instalação!"; exit 1; }
 
+            # Inicia app (Teste de sanidade)
             echo "🚀 Iniciando app..."
-            adb -s "$EMULATOR_SERIAL" shell am start -n com.serverinfo.bshoppdv.playstore/com.serverinfo.bshoppdv.activities.LoginPDVActivity
+            adb shell am start -n com.serverinfo.bshoppdv.playstore/com.serverinfo.bshoppdv.activities.LoginPDVActivity
             sleep 5
 
+            # Inicia Appium em background
             echo "🔧 Iniciando servidor Appium..."
             appium --relaxed-security --log-level error > appium.log 2>&1 &
             APPIUM_PID=$!
             sleep 15
 
-            curl -s http://127.0.0.1:4723/status || { echo "❌ Appium não respondeu"; cat appium.log; kill $APPIUM_PID 2>/dev/null || true; exit 1; }
+            # Verifica status do Appium
+            curl -s http://127.0.0.1:4723/status || { echo "❌ Appium não respondeu"; cat appium.log; exit 1; }
 
+            # Roda testes
             echo "🧪 Executando testes..."
             TEST_FILTER="${{ github.event.inputs.test_filter }}"
             TEST_RESULT=0
-
+            
             if [ -n "$TEST_FILTER" ]; then
               pytest tests/ -v -s -k "$TEST_FILTER" --alluredir=allure-results || TEST_RESULT=$?
             else
@@ -97,6 +91,7 @@
 
             echo "✅ Testes finalizados com código: $TEST_RESULT"
 
+            # Mata Appium antes de sair
             echo "🛑 Encerrando Appium..."
             kill $APPIUM_PID 2>/dev/null || true
             sleep 2
